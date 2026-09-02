@@ -6,6 +6,7 @@ import json
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -14,10 +15,14 @@ from bs4 import BeautifulSoup, Tag
 
 TARGET_URL = "https://www.hotenavi.com/donan-m/empty"
 JST = ZoneInfo("Asia/Tokyo")
-USER_AGENT = "DONAN-Room-Watch/Phase1 (+personal technical verification)"
+USER_AGENT = "DONAN-Room-Watch/Phase2 (+personal technical verification)"
 COUNT_PATTERN = re.compile(r"^\s*(\d+)\s*室\s*$")
 ROOM_PATTERN = re.compile(r"^\d{3}$")
 TYPE_PATTERN = re.compile(r"^Type\s+(.+?)\s*$", re.IGNORECASE)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ROOM_MASTER_PATH = PROJECT_ROOT / "config" / "rooms.json"
+LATEST_PATH = PROJECT_ROOT / "data" / "latest.json"
+HISTORY_PATH = PROJECT_ROOT / "data" / "history.csv"
 
 
 class ScraperError(Exception):
@@ -208,13 +213,26 @@ def scrape(url: str = TARGET_URL) -> dict[str, Any]:
 
 
 def main() -> int:
+    from storage import StorageError, save_observation
+
     try:
         result = scrape()
-    except (ScraperError, ValueError) as exc:
+        latest, history_appended = save_observation(
+            result,
+            master_path=ROOM_MASTER_PATH,
+            latest_path=LATEST_PATH,
+            history_path=HISTORY_PATH,
+        )
+    except (ScraperError, StorageError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    output = {
+        **result,
+        "available_rooms": latest["available_rooms"],
+        "history_appended": history_appended,
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2))
     return 0
 
 

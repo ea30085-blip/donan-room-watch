@@ -1,0 +1,266 @@
+{
+  "observed_at": "2026-09-02T07:42:26+09:00",
+  "available_count": 6,
+  "preparing_count": 0,
+  "total_rooms": 50,
+  "available_rooms": [
+    "305",
+    "401",
+    "418",
+    "501",
+    "518",
+    "613"
+  ],
+  "rooms": [
+    {
+      "room": "101",
+      "type": "A",
+      "status": "not_available"
+    },
+    {
+      "room": "102",
+      "type": "B",
+      "status": "not_available"
+    },
+    {
+      "room": "201",
+      "type": "F",
+      "status": "not_available"
+    },
+    {
+      "room": "202",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "203",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "205",
+      "type": "F",
+      "status": "not_available"
+    },
+    {
+      "room": "211",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "212",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "213",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "215",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "216",
+      "type": "E",
+      "status": "not_available"
+    },
+    {
+      "room": "217",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "218",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "301",
+      "type": "F",
+      "status": "not_available"
+    },
+    {
+      "room": "302",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "303",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "305",
+      "type": "F",
+      "status": "available"
+    },
+    {
+      "room": "311",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "312",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "313",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "315",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "316",
+      "type": "E",
+      "status": "not_available"
+    },
+    {
+      "room": "317",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "318",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "401",
+      "type": "F",
+      "status": "available"
+    },
+    {
+      "room": "402",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "403",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "405",
+      "type": "F",
+      "status": "not_available"
+    },
+    {
+      "room": "411",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "412",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "413",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "415",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "416",
+      "type": "E",
+      "status": "not_available"
+    },
+    {
+      "room": "417",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "418",
+      "type": "C",
+      "status": "available"
+    },
+    {
+      "room": "501",
+      "type": "F",
+      "status": "available"
+    },
+    {
+      "room": "502",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "503",
+      "type": "G",
+      "status": "not_available"
+    },
+    {
+      "room": "505",
+      "type": "F",
+      "status": "not_available"
+    },
+    {
+      "room": "511",
+      "type": "C",
+      "status": "not_available"
+    },
+    {
+      "room": "512",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "513",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "515",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "516",
+      "type": "E",
+      "status": "not_available"
+    },
+    {
+      "room": "517",
+      "type": "D",
+      "status": "not_available"
+    },
+    {
+      "room": "518",
+      "type": "C",
+      "status": "available"
+    },
+    {
+      "room": "611",
+      "type": "I",
+      "status": "not_available"
+    },
+    {
+      "room": "612",
+      "type": "H",
+      "status": "not_available"
+    },
+    {
+      "room": "613",
+      "type": "E",
+      "status": "available"
+    },
+    {
+      "room": "615",
+      "type": "I",
+      "status": "not_available"
+    }
+  ]
+}
