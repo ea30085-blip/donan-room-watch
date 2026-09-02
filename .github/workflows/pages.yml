@@ -1,0 +1,73 @@
+name: Deploy dashboard to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - "data/**"
+      - "config/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch: {}
+  # GITHUB_TOKEN pushes from the collector do not emit another push workflow.
+  # Deploy after a successful collection so the committed data reaches Pages.
+  workflow_run:
+    workflows:
+      - "Collect room availability"
+    types:
+      - completed
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Assemble static site
+        run: |
+          mkdir -p _site/data _site/config
+          cp -R web/. _site/
+          cp data/latest.json data/history.csv _site/data/
+          cp config/rooms.json _site/config/
+          touch _site/.nojekyll
+          test -s _site/index.html
+          test -s _site/data/latest.json
+          test -s _site/data/history.csv
+          test -s _site/config/rooms.json
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

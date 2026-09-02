@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0d12">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="ホテル アイリーンドナン町田の公開空室データを確認する個人用ダッシュボード">
+    <meta property="og:title" content="DONAN WATCH">
+    <meta property="og:description" content="現在の空室と本日の推移を、スマートフォンからすばやく確認。">
+    <meta property="og:type" content="website">
+    <title>DONAN WATCH</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">ROOM AVAILABILITY</p>
+        <h1>DONAN <span>WATCH</span></h1>
+      </div>
+      <button class="refresh-button" id="refresh-button" type="button" aria-label="最新データに更新">
+        <span aria-hidden="true">↻</span>
+        更新
+      </button>
+    </header>
+
+    <main>
+      <div class="status-message" id="status-message" role="status" aria-live="polite">データを読み込んでいます…</div>
+
+      <section class="hero-card" aria-labelledby="availability-heading">
+        <div class="hero-copy">
+          <p class="section-kicker">LIVE STATUS</p>
+          <h2 id="availability-heading">現在の空室</h2>
+          <p class="update-line">
+            最終更新 <time id="updated-at">--/-- --:--</time>
+            <span id="elapsed-time">確認中</span>
+          </p>
+        </div>
+        <div class="availability-total" aria-live="polite">
+          <strong id="available-count">--</strong>
+          <span>/ <b id="total-rooms">--</b>室</span>
+          <small id="availability-rate">--%</small>
+        </div>
+        <div class="hero-meta">
+          <span><i class="status-dot" aria-hidden="true"></i>公開空室データ</span>
+          <span>準備中 <b id="preparing-count">--</b>室</span>
+        </div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="featured-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">PRIORITY</p>
+            <h2 id="featured-heading">Featured Rooms</h2>
+          </div>
+          <p>重点チェック</p>
+        </div>
+        <div class="featured-grid" id="featured-rooms" aria-live="polite"></div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="available-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">AVAILABLE NOW</p>
+            <h2 id="available-heading">現在空いている部屋</h2>
+          </div>
+          <span class="count-pill" id="room-count-pill">--室</span>
+        </div>
+        <div class="room-grid" id="available-rooms"></div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="type-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">BY ROOM TYPE</p>
+            <h2 id="type-heading">Type別空室状況</h2>
+          </div>
+        </div>
+        <div class="type-grid" id="type-summary"></div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="trend-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">TODAY · JST</p>
+            <h2 id="trend-heading">本日の空室数推移</h2>
+          </div>
+        </div>
+        <div class="chart-card" id="availability-chart"></div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="timeline-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">ROOM HISTORY · JST</p>
+            <h2 id="timeline-heading">611 / 615 本日の状態推移</h2>
+          </div>
+        </div>
+        <div class="timeline-card" id="featured-timeline"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>公式サイトの公開情報をもとに表示しています。</p>
+      <p><strong>NOT AVAILABLE</strong> は「現在、公式ページに空室表示がない状態」です。</p>
+    </footer>
+
+    <noscript>このダッシュボードの表示にはJavaScriptが必要です。</noscript>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

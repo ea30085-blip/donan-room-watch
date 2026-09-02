@@ -18,7 +18,7 @@ Phase 2では、公式客室情報から作成した50室の客室マスタと�
 
 `not_available`は「利用中」を意味しません。「公式ページ上でavailableとして掲載されていない状態」です。準備中の具体的な部屋番号は公式HTMLから確定できないため、部屋別ステータスには`preparing`を使用せず、集計値`preparing_count`だけを保存します。
 
-データベース、Web UI、PWA、通知、AI分析、将来予測はまだ実装していません。
+データベース、PWA、通知、AI分析、将来予測はまだ実装していません。
 
 ## セットアップ（Windows PowerShell）
 
@@ -82,6 +82,59 @@ GitHub Actionsのscheduleは厳密なリアルタイム実行を保証しませ�
 実行ログの`Collect availability`ステップでは、`observed_at`、`available_count`、`preparing_count`、`available_rooms`、`history_appended`を確認できます。続く`Check data changes`または`Commit and push data`ステップで、commitが省略されたか`main`へpushされたかを確認できます。赤い失敗表示の場合は、失敗したpytest・取得・検証・rebaseなどのステップを開いて原因を確認してください。
 
 同じ収集workflowは同時実行されず、実行中の処理をキャンセルせずに待機します。push前に`git pull --rebase origin main`を行い、競合を安全に解消できない場合はforce pushせず失敗します。
+
+## Webダッシュボード（Phase 4）
+
+`web/`配下のHTML・CSS・Vanilla JavaScriptで構成された、iPhone向けの静的ダッシュボードです。現在の空室数、611・612・615、全空室、Type別集計、本日の空室数推移、611・615の本日状態推移を表示します。
+
+ブラウザはGitHub Pages上の同一オリジンから次の公開データを取得します。
+
+- `data/latest.json`
+- `data/history.csv`
+- `config/rooms.json`
+
+ページを開いたときに全データを取得し、その後は5分ごとに`latest.json`をキャッシュ無効化付きで確認します。新しい`observed_at`を検知した場合だけ、履歴を含む表示を更新します。
+
+`NOT AVAILABLE`は「利用中」ではなく、「現在、公式空室ページに空室表示がない状態」です。
+
+### GitHub Pages構成
+
+`.github/workflows/pages.yml`が`web/`の中身をartifact直下へ配置し、`data/`と`config/`を同じartifactへコピーしてGitHub Pagesへデプロイします。以下の変更時に動作します。
+
+- `web/**`
+- `data/**`
+- `config/**`
+- `.github/workflows/pages.yml`
+
+Phase 3の収集commitは`GITHUB_TOKEN`によるpushのため別workflowのpushイベントを発生させません。そのため、Pages workflowは`Collect room availability`の成功完了も検知し、最新の`main`から再デプロイします。
+
+公開後の想定URLは次のとおりです。現時点ではGitHub上へのデプロイ成功をまだ確認していません。
+
+<https://ea30085-blip.github.io/donan-room-watch/>
+
+### ローカル確認（Windows PowerShell）
+
+リポジトリ直下で公開用と同じ構成を作り、HTTPサーバを起動します。
+
+```powershell
+New-Item -ItemType Directory -Force .preview-site, .preview-site\data, .preview-site\config
+Copy-Item -Force web\* .preview-site\
+Copy-Item -Force data\latest.json, data\history.csv .preview-site\data\
+Copy-Item -Force config\rooms.json .preview-site\config\
+python -m http.server 8000 --directory .preview-site
+```
+
+その後、ブラウザで<http://127.0.0.1:8000/>を開きます。`file://`での直開きは使用しません。
+
+### GitHub Pagesの有効化
+
+Phase 4を`main`へpushした後、GitHubのリポジトリで`Settings` → `Pages` → `Build and deployment`を開き、`Source`に`GitHub Actions`を選択します。その後、`Actions`タブの`Deploy dashboard to GitHub Pages`を手動実行して初回デプロイを確認してください。
+
+成功時はworkflowのdeploy結果に公開URLが表示されます。失敗時は`Assemble static site`、`Upload GitHub Pages artifact`、`Deploy to GitHub Pages`のどのステップで失敗したか確認してください。
+
+### iPhone Safariで開く
+
+公開URLをSafariで開きます。ホーム画面へ追加する場合は、Safari下部の共有ボタンから`ホーム画面に追加`を選択してください。Service Workerやオフライン対応はまだ実装していないため、表示にはネットワーク接続が必要です。
 
 ## データ構造
 
