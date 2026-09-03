@@ -1,13 +1,15 @@
 {
-  "observed_at": "2026-09-03T23:20:19+09:00",
-  "available_count": 4,
+  "observed_at": "2026-09-03T23:33:18+09:00",
+  "available_count": 6,
   "preparing_count": 3,
   "total_rooms": 50,
   "available_rooms": [
     "201",
+    "215",
+    "303",
     "311",
     "416",
-    "611"
+    "501"
   ],
   "rooms": [
     {
@@ -58,7 +60,7 @@
     {
       "room": "215",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "216",
@@ -88,7 +90,7 @@
     {
       "room": "303",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "305",
@@ -188,7 +190,7 @@
     {
       "room": "501",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "502",
@@ -243,7 +245,7 @@
     {
       "room": "611",
       "type": "I",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "612",
