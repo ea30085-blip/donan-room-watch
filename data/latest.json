@@ -1,10 +1,11 @@
 {
-  "observed_at": "2026-09-04T19:44:55+09:00",
-  "available_count": 4,
-  "preparing_count": 1,
+  "observed_at": "2026-09-04T19:56:17+09:00",
+  "available_count": 5,
+  "preparing_count": 2,
   "total_rooms": 50,
   "available_rooms": [
     "201",
+    "211",
     "303",
     "513",
     "611"
@@ -43,7 +44,7 @@
     {
       "room": "211",
       "type": "C",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "212",
