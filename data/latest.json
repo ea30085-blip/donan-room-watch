@@ -1,7 +1,7 @@
 {
-  "observed_at": "2026-09-06T23:42:20+09:00",
+  "observed_at": "2026-09-06T23:55:47+09:00",
   "available_count": 5,
-  "preparing_count": 2,
+  "preparing_count": 0,
   "total_rooms": 50,
   "available_rooms": [
     "201",
