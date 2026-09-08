@@ -1,13 +1,14 @@
 {
-  "observed_at": "2026-09-08T22:21:20+09:00",
-  "available_count": 5,
-  "preparing_count": 3,
+  "observed_at": "2026-09-08T22:35:54+09:00",
+  "available_count": 6,
+  "preparing_count": 4,
   "total_rooms": 50,
   "available_rooms": [
     "202",
     "302",
     "312",
     "405",
+    "413",
     "502"
   ],
   "rooms": [
@@ -164,7 +165,7 @@
     {
       "room": "413",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "415",
