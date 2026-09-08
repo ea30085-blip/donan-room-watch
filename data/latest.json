@@ -1,10 +1,10 @@
 {
-  "observed_at": "2026-09-08T19:47:01+09:00",
+  "observed_at": "2026-09-08T19:56:38+09:00",
   "available_count": 2,
-  "preparing_count": 3,
+  "preparing_count": 4,
   "total_rooms": 50,
   "available_rooms": [
-    "203",
+    "205",
     "517"
   ],
   "rooms": [
@@ -31,12 +31,12 @@
     {
       "room": "203",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "205",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "211",
