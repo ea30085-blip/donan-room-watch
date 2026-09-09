@@ -1,18 +1,17 @@
 {
-  "observed_at": "2026-09-09T22:58:42+09:00",
-  "available_count": 9,
-  "preparing_count": 5,
+  "observed_at": "2026-09-09T23:19:17+09:00",
+  "available_count": 8,
+  "preparing_count": 4,
   "total_rooms": 50,
   "available_rooms": [
     "205",
-    "211",
-    "405",
-    "413",
+    "212",
+    "303",
+    "318",
+    "403",
     "416",
     "501",
-    "503",
-    "511",
-    "615"
+    "513"
   ],
   "rooms": [
     {
@@ -48,12 +47,12 @@
     {
       "room": "211",
       "type": "C",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "212",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "213",
@@ -93,7 +92,7 @@
     {
       "room": "303",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "305",
@@ -133,7 +132,7 @@
     {
       "room": "318",
       "type": "C",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "401",
@@ -148,12 +147,12 @@
     {
       "room": "403",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "405",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "411",
@@ -168,7 +167,7 @@
     {
       "room": "413",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "415",
@@ -203,7 +202,7 @@
     {
       "room": "503",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "505",
@@ -213,7 +212,7 @@
     {
       "room": "511",
       "type": "C",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "512",
@@ -223,7 +222,7 @@
     {
       "room": "513",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "515",
@@ -263,7 +262,7 @@
     {
       "room": "615",
       "type": "I",
-      "status": "available"
+      "status": "not_available"
     }
   ]
 }
