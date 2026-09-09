@@ -1,5 +1,6 @@
 import {
   elapsedLabel,
+  filterAvailableRooms,
   formatJstDateTime,
   parseHistory,
   roomTimeline,
@@ -9,6 +10,7 @@ import {
   validateLatest,
   validateRoomConfig,
 } from "./data-utils.js";
+import { FACILITY_KEYS, FACILITY_META } from "./facility-meta.js";
 
 const FEATURED_ROOMS = ["611", "612", "615"];
 const DATA_URLS = {
@@ -23,6 +25,7 @@ const state = {
   history: [],
   historyError: null,
   loading: false,
+  activeFacility: null,
 };
 
 function element(id) {
@@ -61,6 +64,27 @@ function renderHeader() {
   element("availability-rate").textContent = `空室率 ${rate.toFixed(1)}%`;
 }
 
+function createFacilityChips(facilities) {
+  const list = document.createElement("div");
+  list.className = "facility-chips";
+  list.setAttribute("aria-label", "客室設備");
+  for (const key of FACILITY_KEYS.filter((facility) => facilities.includes(facility))) {
+    const meta = FACILITY_META[key];
+    const chip = document.createElement("span");
+    chip.className = "facility-chip";
+    chip.innerHTML = `<span aria-hidden="true">${meta.icon}</span><span>${meta.label}</span>`;
+    list.append(chip);
+  }
+  return list;
+}
+
+function facilityAriaText(facilities) {
+  return FACILITY_KEYS
+    .filter((facility) => facilities.includes(facility))
+    .map((facility) => FACILITY_META[facility].label)
+    .join("、");
+}
+
 function renderFeaturedRooms() {
   const masterByRoom = new Map(state.masterRooms.map((room) => [room.room, room]));
   const available = new Set(state.latest.available_rooms);
@@ -69,28 +93,79 @@ function renderFeaturedRooms() {
     const isAvailable = available.has(roomNumber);
     const card = document.createElement("article");
     card.className = `featured-card ${isAvailable ? "available" : "not-available"}`;
-    card.setAttribute("aria-label", `Room ${roomNumber} Type ${room?.type || "不明"} ${isAvailable ? "空室あり" : "現在空室表示なし"}`);
-    card.innerHTML = `
-      <strong class="room-number">${roomNumber}</strong>
-      <span class="room-type">Type ${room?.type || "--"}</span>
-      <span class="state-badge">${isAvailable ? "AVAILABLE" : "NOT AVAILABLE"}</span>
-    `;
+    const facilities = room?.facilities || [];
+    card.setAttribute(
+      "aria-label",
+      `Room ${roomNumber} Type ${room?.type || "不明"}。設備 ${facilityAriaText(facilities) || "比較設備なし"}。${isAvailable ? "空室あり" : "現在空室表示なし"}`,
+    );
+    card.innerHTML = `<strong class="room-number">${roomNumber}</strong><span class="room-type">Type ${room?.type || "--"}</span>`;
+    card.append(createFacilityChips(facilities));
+    const status = document.createElement("span");
+    status.className = "state-badge";
+    status.textContent = isAvailable ? "AVAILABLE" : "NOT AVAILABLE";
+    card.append(status);
     return card;
   }));
 }
 
+function renderFacilityFilters() {
+  const container = element("facility-filters");
+  const options = [
+    { key: null, label: "すべて", icon: null },
+    ...FACILITY_KEYS.map((key) => ({ key, ...FACILITY_META[key] })),
+  ];
+  container.replaceChildren(...options.map(({ key, label, icon }) => {
+    const button = document.createElement("button");
+    const isActive = state.activeFacility === key;
+    button.type = "button";
+    button.className = `facility-filter${isActive ? " active" : ""}`;
+    button.dataset.facility = key || "all";
+    button.setAttribute("aria-pressed", String(isActive));
+    button.setAttribute("aria-label", key ? `${label}付きの空室で絞り込む` : "すべての空室を表示");
+    if (icon) {
+      const symbol = document.createElement("span");
+      symbol.setAttribute("aria-hidden", "true");
+      symbol.textContent = icon;
+      button.append(symbol);
+    }
+    button.append(document.createTextNode(label));
+    button.addEventListener("click", () => {
+      state.activeFacility = key;
+      renderFacilityFilters();
+      renderAvailableRooms();
+    });
+    return button;
+  }));
+}
+
 function renderAvailableRooms() {
-  const available = state.latest.rooms.filter((room) => room.status === "available");
+  const available = filterAvailableRooms(
+    state.latest.rooms,
+    state.masterRooms,
+    state.activeFacility,
+  );
   element("room-count-pill").textContent = `${available.length}室`;
+  const filterLabel = state.activeFacility ? FACILITY_META[state.activeFacility].label : "すべて";
+  element("filter-result-summary").textContent = `${filterLabel}：${available.length}室`;
   const container = element("available-rooms");
   if (available.length === 0) {
-    renderEmpty(container, "現在、公式ページに空室表示はありません。");
+    const message = state.activeFacility
+      ? `現在、${FACILITY_META[state.activeFacility].label}付きの空室はありません。`
+      : "現在、公式ページに空室表示はありません。";
+    renderEmpty(container, message);
     return;
   }
   container.replaceChildren(...available.map((room) => {
     const card = document.createElement("article");
     card.className = "room-card available";
-    card.innerHTML = `<strong class="room-number">${room.room}</strong><span class="room-type">Type ${room.type}</span>`;
+    card.setAttribute(
+      "aria-label",
+      `Room ${room.room} Type ${room.type}。設備 ${facilityAriaText(room.facilities) || "比較設備なし"}`,
+    );
+    const header = document.createElement("div");
+    header.className = "room-card-header";
+    header.innerHTML = `<strong class="room-number">${room.room}</strong><span class="room-type">Type ${room.type}</span>`;
+    card.append(header, createFacilityChips(room.facilities));
     return card;
   }));
 }
@@ -234,6 +309,7 @@ function renderHistory() {
 function renderCurrentData() {
   renderHeader();
   renderFeaturedRooms();
+  renderFacilityFilters();
   renderAvailableRooms();
   renderTypeSummary();
   renderHistory();

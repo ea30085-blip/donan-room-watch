@@ -97,6 +97,24 @@ GitHub Actionsのscheduleは厳密なリアルタイム実行を保証しませ�
 
 `NOT AVAILABLE`は「利用中」ではなく、「現在、公式空室ページに空室表示がない状態」です。
 
+### 設備表示と空室フィルター（Phase 4.1）
+
+現在空いている部屋とFeatured Rooms（611・612・615）には、部屋番号単位で公式確認できた比較設備をchipで表示します。「現在空いている部屋」の「設備で絞り込む」から単一の設備を選ぶと、現在availableでその設備を持つ部屋だけを表示します。「すべて」で解除できます。フィルターはFeatured Rooms、Type別状況、履歴グラフには影響しません。
+
+設備キーと画面表示は次のとおりです。
+
+| キー | 表示 | 公式ページ上の区分 |
+| --- | --- | --- |
+| `sauna` | サウナ | サウナ |
+| `karaoke` | カラオケ | 通信カラオケ |
+| `bath_tv` | 浴室TV | 22インチ浴室TV |
+| `massage_chair` | マッサージ | マッサージチェア |
+| `collagen_machine` | コラーゲン | コラーゲン（美肌）マシン |
+| `rainbow_blower_bath` | 虹色ブロアー | 虹色ブロアーバス |
+| `blower_bath` | ブロアーバス | ブロアーバス |
+
+`rainbow_blower_bath`と`blower_bath`は公式ページ上で別の限定設備として客室一覧が示されているため、推測で統合せず別キーにしています。Wi-Fi、電子レンジ、一般的なTVなどの全室設備は、部屋選びの比較材料にならないためマスタ・chip・フィルターへ含めていません。
+
 ### GitHub Pages構成
 
 `.github/workflows/pages.yml`が`web/`の中身をartifact直下へ配置し、`data/`と`config/`を同じartifactへコピーしてGitHub Pagesへデプロイします。以下の変更時に動作します。
@@ -140,20 +158,23 @@ Phase 4を`main`へpushした後、GitHubのリポジトリで`Settings` → `Pa
 
 ### `config/rooms.json`
 
-公式の[客室情報](https://www.hotenavi.com/donan-m/room)を2026-09-02に確認して作成した客室マスタです。全50室の`room`と`type`を保持します。roomの3桁形式、重複、Typeの有無は実行時にも検証されます。
+公式の[客室情報](https://www.hotenavi.com/donan-m/room)と[サービス・設備情報](https://www.hotenavi.com/donan-m/service)を2026-09-10に確認して作成した客室マスタです。全50室の`room`、`type`、部屋ごとの`facilities`を保持します。
+
+`facilities`は全客室で必須の配列です。空の場合も`[]`を明示します。roomの3桁形式・重複・Typeの有無に加え、配列型、許可キー、設備キーの重複をPython保存処理とブラウザ表示処理の双方で検証します。未知の設備キーが含まれる場合は観測データを保存せず、ダッシュボードもエラーとして扱います。
 
 ```json
 {
   "source_url": "https://www.hotenavi.com/donan-m/room",
-  "verified_at": "2026-09-02",
+  "facility_source_url": "https://www.hotenavi.com/donan-m/service",
+  "verified_at": "2026-09-10",
   "rooms": [
-    {"room": "101", "type": "A"},
-    {"room": "102", "type": "B"}
+    {"room": "101", "type": "A", "facilities": ["rainbow_blower_bath"]},
+    {"room": "615", "type": "I", "facilities": ["sauna", "karaoke", "bath_tv", "massage_chair", "collagen_machine", "blower_bath"]}
   ]
 }
 ```
 
-設備については公式の[サービス・設備情報](https://www.hotenavi.com/donan-m/service)も確認しましたが、Phase 2のマスタには確実に必要なroom・Typeだけを登録しています。
+設備情報は2026-09-10時点の公式掲載内容です。公式サイトで設備や対応客室が変更された場合は、`config/rooms.json`の対応客室と`verified_at`を再確認・更新する必要があります。設備は静的属性のため`data/history.csv`へ重複保存しません。
 
 ### `data/latest.json`
 
@@ -188,7 +209,7 @@ observed_at,available_count,preparing_count,total_rooms,available_rooms
 python -m pytest
 ```
 
-テストは`tests/fixtures/`とpytestの`tmp_path`を使うため、対象サイトへアクセスしません。Phase 1の解析テストに加え、客室マスタ、全室ステータス、履歴生成、空室0件、重複防止、異常時の非更新を検証します。
+テストは`tests/fixtures/`とpytestの`tmp_path`を使うため、対象サイトへアクセスしません。Phase 1の解析テストに加え、客室マスタ、設備対応、設備フィルター、全室ステータス、履歴生成、空室0件、重複防止、異常時の非更新、ダッシュボード構造を検証します。
 
 ## 対象ページ
 

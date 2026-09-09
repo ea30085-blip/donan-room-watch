@@ -13,6 +13,17 @@ from pathlib import Path
 from typing import Any
 
 ROOM_PATTERN = re.compile(r"^[0-9]{3}$")
+ALLOWED_FACILITIES = frozenset(
+    {
+        "sauna",
+        "karaoke",
+        "bath_tv",
+        "massage_chair",
+        "collagen_machine",
+        "blower_bath",
+        "rainbow_blower_bath",
+    }
+)
 HISTORY_FIELDS = [
     "observed_at",
     "available_count",
@@ -27,12 +38,12 @@ class StorageError(Exception):
     """Raised when master validation or persistence cannot be completed safely."""
 
 
-def validate_room_master(entries: Any) -> list[dict[str, str]]:
+def validate_room_master(entries: Any) -> list[dict[str, Any]]:
     """Return a normalized, sorted room master or raise a descriptive error."""
     if not isinstance(entries, list) or not entries:
         raise StorageError("客室マスタのroomsは空でない配列である必要があります")
 
-    normalized: list[dict[str, str]] = []
+    normalized: list[dict[str, Any]] = []
     seen: set[str] = set()
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
@@ -40,6 +51,7 @@ def validate_room_master(entries: Any) -> list[dict[str, str]]:
 
         room = entry.get("room")
         room_type = entry.get("type")
+        facilities = entry.get("facilities")
         if not isinstance(room, str) or not ROOM_PATTERN.fullmatch(room):
             raise StorageError(
                 f"客室マスタのroomが3桁の数字ではありません: {room!r}"
@@ -48,14 +60,40 @@ def validate_room_master(entries: Any) -> list[dict[str, str]]:
             raise StorageError(f"客室マスタに重複したroomがあります: {room}")
         if not isinstance(room_type, str) or not room_type.strip():
             raise StorageError(f"客室マスタのroom {room} にtypeがありません")
+        if not isinstance(facilities, list):
+            raise StorageError(
+                f"客室マスタのroom {room} のfacilitiesが配列ではありません"
+            )
+
+        normalized_facilities: list[str] = []
+        seen_facilities: set[str] = set()
+        for facility in facilities:
+            if not isinstance(facility, str) or facility not in ALLOWED_FACILITIES:
+                raise StorageError(
+                    f"客室マスタのroom {room} に未知のfacilityがあります: "
+                    f"{facility!r}"
+                )
+            if facility in seen_facilities:
+                raise StorageError(
+                    f"客室マスタのroom {room} に重複したfacilityがあります: "
+                    f"{facility}"
+                )
+            seen_facilities.add(facility)
+            normalized_facilities.append(facility)
 
         seen.add(room)
-        normalized.append({"room": room, "type": room_type.strip()})
+        normalized.append(
+            {
+                "room": room,
+                "type": room_type.strip(),
+                "facilities": normalized_facilities,
+            }
+        )
 
     return sorted(normalized, key=lambda item: int(item["room"]))
 
 
-def load_room_master(path: Path) -> list[dict[str, str]]:
+def load_room_master(path: Path) -> list[dict[str, Any]]:
     """Load and validate config/rooms.json."""
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -82,7 +120,7 @@ def _validate_observed_at(value: Any) -> str:
 
 
 def validate_observation(
-    observation: dict[str, Any], master: list[dict[str, str]]
+    observation: dict[str, Any], master: list[dict[str, Any]]
 ) -> None:
     """Validate Phase 1 output against the room master before any write."""
     if not isinstance(observation, dict):
@@ -128,7 +166,7 @@ def validate_observation(
 
 
 def build_latest(
-    observation: dict[str, Any], master: list[dict[str, str]]
+    observation: dict[str, Any], master: list[dict[str, Any]]
 ) -> dict[str, Any]:
     """Build a full-room snapshot after validating observation and master."""
     normalized_master = validate_room_master(master)

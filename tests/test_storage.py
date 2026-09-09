@@ -28,11 +28,11 @@ FIXTURES = Path(__file__).parent / "fixtures"
 OBSERVED_AT = "2026-09-02T03:00:00+09:00"
 
 
-def small_master() -> list[dict[str, str]]:
+def small_master() -> list[dict[str, object]]:
     return [
-        {"room": "101", "type": "A"},
-        {"room": "213", "type": "D"},
-        {"room": "516", "type": "E"},
+        {"room": "101", "type": "A", "facilities": []},
+        {"room": "213", "type": "D", "facilities": ["blower_bath"]},
+        {"room": "516", "type": "E", "facilities": ["karaoke"]},
     ]
 
 
@@ -54,7 +54,7 @@ def observation(
     }
 
 
-def write_master(path: Path, rooms: list[dict[str, str]] | None = None) -> None:
+def write_master(path: Path, rooms: list[dict[str, object]] | None = None) -> None:
     path.write_text(
         json.dumps({"rooms": rooms if rooms is not None else small_master()}),
         encoding="utf-8",
@@ -68,6 +68,7 @@ def test_official_room_master_has_50_valid_unique_sorted_rooms() -> None:
     assert len({entry["room"] for entry in master}) == 50
     assert all(len(entry["room"]) == 3 and entry["room"].isdigit() for entry in master)
     assert all(entry["type"] for entry in master)
+    assert all(isinstance(entry["facilities"], list) for entry in master)
     assert [entry["room"] for entry in master] == sorted(
         (entry["room"] for entry in master), key=int
     )
@@ -76,13 +77,13 @@ def test_official_room_master_has_50_valid_unique_sorted_rooms() -> None:
 @pytest.mark.parametrize(
     ("rooms", "message"),
     [
-        ([{"room": "101", "type": "A"}, {"room": "101", "type": "A"}], "重複"),
-        ([{"room": "10A", "type": "A"}], "3桁"),
-        ([{"room": "101", "type": ""}], "type"),
+        ([{"room": "101", "type": "A", "facilities": []}, {"room": "101", "type": "A", "facilities": []}], "重複"),
+        ([{"room": "10A", "type": "A", "facilities": []}], "3桁"),
+        ([{"room": "101", "type": "", "facilities": []}], "type"),
     ],
 )
 def test_invalid_room_master_is_rejected(
-    rooms: list[dict[str, str]], message: str
+    rooms: list[dict[str, object]], message: str
 ) -> None:
     with pytest.raises(StorageError, match=message):
         validate_room_master(rooms)

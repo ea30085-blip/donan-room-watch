@@ -1,4 +1,7 @@
+import { FACILITY_KEYS } from "./facility-meta.js";
+
 const JST_TIME_ZONE = "Asia/Tokyo";
+const FACILITY_KEY_SET = new Set(FACILITY_KEYS);
 
 export function formatJstDateTime(isoString) {
   const date = new Date(isoString);
@@ -37,9 +40,40 @@ export function validateRoomConfig(document) {
       throw new Error("rooms.jsonに不正な客室データがあります");
     }
     if (seen.has(entry.room)) throw new Error(`rooms.jsonに重複があります: ${entry.room}`);
+    if (!Array.isArray(entry.facilities)) {
+      throw new Error(`rooms.jsonのfacilitiesが配列ではありません: ${entry.room}`);
+    }
+    const facilitySet = new Set();
+    for (const facility of entry.facilities) {
+      if (typeof facility !== "string" || !FACILITY_KEY_SET.has(facility)) {
+        throw new Error(`rooms.jsonに未知の設備があります: ${entry.room} ${facility}`);
+      }
+      if (facilitySet.has(facility)) {
+        throw new Error(`rooms.jsonの設備が重複しています: ${entry.room} ${facility}`);
+      }
+      facilitySet.add(facility);
+    }
     seen.add(entry.room);
-    return { room: entry.room, type: entry.type };
+    return { room: entry.room, type: entry.type, facilities: [...entry.facilities] };
   }).sort((a, b) => Number(a.room) - Number(b.room));
+}
+
+export function roomsWithFacility(masterRooms, facilityKey) {
+  if (!FACILITY_KEY_SET.has(facilityKey)) {
+    throw new Error(`未知の設備キーです: ${facilityKey}`);
+  }
+  return masterRooms.filter((room) => room.facilities.includes(facilityKey));
+}
+
+export function filterAvailableRooms(latestRooms, masterRooms, facilityKey = null) {
+  if (facilityKey !== null && !FACILITY_KEY_SET.has(facilityKey)) {
+    throw new Error(`未知の設備キーです: ${facilityKey}`);
+  }
+  const masterByRoom = new Map(masterRooms.map((room) => [room.room, room]));
+  return latestRooms
+    .filter((room) => room.status === "available")
+    .map((room) => ({ ...room, facilities: [...masterByRoom.get(room.room).facilities] }))
+    .filter((room) => facilityKey === null || room.facilities.includes(facilityKey));
 }
 
 export function validateLatest(document, masterRooms) {

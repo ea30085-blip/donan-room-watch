@@ -36,6 +36,8 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
         "available-count",
         "total-rooms",
         "featured-rooms",
+        "facility-filters",
+        "filter-result-summary",
         "available-rooms",
         "type-summary",
         "availability-chart",
@@ -49,6 +51,7 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
     assert (WEB / "styles.css").is_file()
     assert (WEB / "app.js").is_file()
     assert (WEB / "data-utils.js").is_file()
+    assert (WEB / "facility-meta.js").is_file()
     assert (WEB / "favicon.svg").is_file()
 
 
@@ -63,6 +66,10 @@ def test_dashboard_css_is_mobile_first_and_safe_area_aware() -> None:
     assert "@media (min-width: 620px)" in styles
     assert ".timeline-scroll" in styles
     assert "overflow-x: auto" in styles
+    assert ".facility-chip" in styles
+    assert ".facility-filter.active" in styles
+    assert ".facility-filters" in styles
+    assert "flex-wrap: wrap" in styles
 
 
 def test_dashboard_uses_same_origin_data_and_periodic_cache_busting() -> None:
@@ -87,10 +94,32 @@ def test_dashboard_data_utilities_cover_required_aggregations() -> None:
         "tokyoDateKey",
         "todaysHistory",
         "roomTimeline",
+        "roomsWithFacility",
+        "filterAvailableRooms",
     ]:
         assert f"export function {export_name}" in utilities
     assert 'const JST_TIME_ZONE = "Asia/Tokyo"' in utilities
     assert 'values[4].split("|")' in utilities
+
+
+def test_facility_ui_uses_central_metadata_and_accessible_filter_state() -> None:
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+    metadata = (WEB / "facility-meta.js").read_text(encoding="utf-8")
+
+    for key in [
+        "sauna",
+        "karaoke",
+        "bath_tv",
+        "massage_chair",
+        "collagen_machine",
+        "blower_bath",
+        "rainbow_blower_bath",
+    ]:
+        assert f"{key}:" in metadata
+    assert 'setAttribute("aria-pressed", String(isActive))' in app
+    assert 'className = "facility-chips"' in app
+    assert 'className = "facility-chip"' in app
+    assert "renderFacilityFilters();" in app
 
 
 def test_current_public_data_matches_dashboard_contract() -> None:
