@@ -1,15 +1,17 @@
 {
-  "observed_at": "2026-09-09T17:45:56+09:00",
-  "available_count": 7,
-  "preparing_count": 4,
+  "observed_at": "2026-09-09T18:19:31+09:00",
+  "available_count": 9,
+  "preparing_count": 1,
   "total_rooms": 50,
   "available_rooms": [
     "205",
-    "213",
+    "215",
     "302",
-    "317",
-    "418",
-    "516",
+    "311",
+    "405",
+    "503",
+    "512",
+    "613",
     "615"
   ],
   "rooms": [
@@ -56,12 +58,12 @@
     {
       "room": "213",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "215",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "216",
@@ -101,7 +103,7 @@
     {
       "room": "311",
       "type": "C",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "312",
@@ -126,7 +128,7 @@
     {
       "room": "317",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "318",
@@ -151,7 +153,7 @@
     {
       "room": "405",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "411",
@@ -186,7 +188,7 @@
     {
       "room": "418",
       "type": "C",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "501",
@@ -201,7 +203,7 @@
     {
       "room": "503",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "505",
@@ -216,7 +218,7 @@
     {
       "room": "512",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "513",
@@ -231,7 +233,7 @@
     {
       "room": "516",
       "type": "E",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "517",
@@ -256,7 +258,7 @@
     {
       "room": "613",
       "type": "E",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "615",
