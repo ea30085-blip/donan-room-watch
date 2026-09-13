@@ -1,4 +1,4 @@
-import { FACILITY_KEYS } from "./facility-meta.js";
+import { FACILITY_KEYS } from "./facility-meta.js?v=4.2.1";
 
 const JST_TIME_ZONE = "Asia/Tokyo";
 const HOUR_MS = 60 * 60 * 1000;
@@ -11,6 +11,38 @@ export const TIME_BANDS = Object.freeze(
     label: `${String(index * 2).padStart(2, "0")}-${String((index + 1) * 2).padStart(2, "0")}`,
   })),
 );
+export const ALL_DAY_HOURS = Object.freeze(Array.from({ length: 24 }, (_, hour) => hour));
+export const EVENING_TIME_SLOTS = Object.freeze([
+  ...Array.from({ length: 4 }, (_, index) => {
+    const hour = 18 + index;
+    return {
+      key: String(hour),
+      granularity: "hour",
+      hour,
+      minute: 0,
+      label: `${String(hour).padStart(2, "0")}:00–${String(hour + 1).padStart(2, "0")}:00`,
+      ariaLabel: `${hour}時から${hour + 1}時`,
+    };
+  }),
+  ...Array.from({ length: 8 }, (_, index) => {
+    const totalMinutes = 22 * 60 + index * 15;
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    const endMinutes = totalMinutes + 15;
+    const endHour = Math.floor(endMinutes / 60);
+    const endMinute = endMinutes % 60;
+    const startLabel = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    const endLabel = `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+    return {
+      key: startLabel,
+      granularity: "quarter-hour",
+      hour,
+      minute,
+      label: `${startLabel}–${endLabel}`,
+      ariaLabel: `${hour}時${minute ? `${minute}分` : ""}から${endHour}時${endMinute ? `${endMinute}分` : ""}`,
+    };
+  }),
+]);
 
 function checkedDate(value) {
   const date = value instanceof Date ? value : new Date(value);
@@ -30,7 +62,7 @@ function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function jstDateHourParts(value) {
+export function jstDateTimeParts(value) {
   const date = checkedDate(value);
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: JST_TIME_ZONE,
@@ -38,6 +70,7 @@ export function jstDateHourParts(value) {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
+    minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(date);
   const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]));
@@ -50,8 +83,18 @@ export function jstDateHourParts(value) {
   return {
     dateKey,
     hour,
+    minute: Number(fields.minute),
     weekdayIndex: (utcDay + 6) % 7,
-    key: `${dateKey}T${String(hour).padStart(2, "0")}`,
+  };
+}
+
+export function jstDateHourParts(value) {
+  const parts = jstDateTimeParts(value);
+  return {
+    dateKey: parts.dateKey,
+    hour: parts.hour,
+    weekdayIndex: parts.weekdayIndex,
+    key: `${parts.dateKey}T${String(parts.hour).padStart(2, "0")}`,
   };
 }
 
@@ -115,6 +158,100 @@ export function buildHourlyBuckets(history) {
       roomHits: { ...bucket.roomHits },
       observations: bucket.observations,
     }));
+}
+
+export function buildQuarterHourBuckets(history) {
+  const bucketMap = new Map();
+  for (const entry of history) {
+    const parts = jstDateTimeParts(entry.observedAt);
+    const minute = Math.floor(parts.minute / 15) * 15;
+    const key = `${parts.dateKey}T${String(parts.hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    const bucket = bucketMap.get(key) || {
+      key,
+      dateKey: parts.dateKey,
+      hour: parts.hour,
+      minute,
+      weekdayIndex: parts.weekdayIndex,
+      observationCount: 0,
+      availableCountTotal: 0,
+    };
+    bucket.observationCount += 1;
+    bucket.availableCountTotal += entry.availableCount;
+    bucketMap.set(key, bucket);
+  }
+  return [...bucketMap.values()]
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .map((bucket) => ({
+      key: bucket.key,
+      dateKey: bucket.dateKey,
+      hour: bucket.hour,
+      minute: bucket.minute,
+      weekdayIndex: bucket.weekdayIndex,
+      observationCount: bucket.observationCount,
+      averageAvailableCount: bucket.availableCountTotal / bucket.observationCount,
+    }));
+}
+
+function bucketAverageGroups(buckets, keyForBucket) {
+  const groups = new Map();
+  for (const bucket of buckets) {
+    const key = keyForBucket(bucket);
+    const values = groups.get(key) || [];
+    values.push(bucket.averageAvailableCount);
+    groups.set(key, values);
+  }
+  return groups;
+}
+
+export function buildEveningTimeAnalysis(hourBuckets, quarterHourBuckets) {
+  const hourlyGroups = bucketAverageGroups(
+    hourBuckets,
+    (bucket) => `${bucket.weekdayIndex}:${bucket.hour}`,
+  );
+  const quarterGroups = bucketAverageGroups(
+    quarterHourBuckets,
+    (bucket) => `${bucket.weekdayIndex}:${bucket.hour}:${bucket.minute}`,
+  );
+  return WEEKDAY_LABELS.flatMap((weekday, weekdayIndex) =>
+    EVENING_TIME_SLOTS.map((slot) => {
+      const groupKey = slot.granularity === "hour"
+        ? `${weekdayIndex}:${slot.hour}`
+        : `${weekdayIndex}:${slot.hour}:${slot.minute}`;
+      const values = (slot.granularity === "hour" ? hourlyGroups : quarterGroups).get(groupKey) || [];
+      return {
+        weekday,
+        weekdayIndex,
+        slotKey: slot.key,
+        label: slot.label,
+        ariaLabel: slot.ariaLabel,
+        granularity: slot.granularity,
+        averageAvailableCount: average(values),
+        bucketCount: values.length,
+      };
+    }),
+  );
+}
+
+export function buildAllDayTimeAnalysis(hourBuckets) {
+  const groups = bucketAverageGroups(
+    hourBuckets,
+    (bucket) => `${bucket.weekdayIndex}:${bucket.hour}`,
+  );
+  return WEEKDAY_LABELS.flatMap((weekday, weekdayIndex) =>
+    ALL_DAY_HOURS.map((hour) => {
+      const values = groups.get(`${weekdayIndex}:${hour}`) || [];
+      return {
+        weekday,
+        weekdayIndex,
+        hour,
+        label: String(hour).padStart(2, "0"),
+        ariaLabel: `${hour}時から${hour + 1}時`,
+        granularity: "hour",
+        averageAvailableCount: average(values),
+        bucketCount: values.length,
+      };
+    }),
+  );
 }
 
 export function aggregateAverageAvailability(buckets) {
@@ -204,6 +341,7 @@ export function analyzeAvailability(history, masterRooms, hours, now = new Date(
     completedHoursOnly: true,
   });
   const buckets = buildHourlyBuckets(filteredHistory);
+  const quarterHourBuckets = buildQuarterHourBuckets(filteredHistory);
   const bounds = completedWindowBounds(now, hours);
   return {
     hours,
@@ -214,9 +352,12 @@ export function analyzeAvailability(history, masterRooms, hours, now = new Date(
     coverage: calculateCoverage(buckets, hours),
     averageAvailableCount: aggregateAverageAvailability(buckets),
     heatmap: buildWeekdayTimeHeatmap(buckets),
+    eveningTime: buildEveningTimeAnalysis(buckets, quarterHourBuckets),
+    allDayTime: buildAllDayTimeAnalysis(buckets),
     facilityRates: facilityAvailabilityRates(buckets, masterRooms),
     roomRates: roomAvailabilityRates(buckets, masterRooms),
     buckets,
+    quarterHourBuckets,
   };
 }
 

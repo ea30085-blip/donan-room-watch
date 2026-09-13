@@ -13,7 +13,7 @@
     <meta property="og:type" content="website">
     <title>DONAN WATCH</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=4.2">
+    <link rel="stylesheet" href="./styles.css?v=4.2.1">
   </head>
   <body>
     <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -30,8 +30,40 @@
       </button>
     </header>
 
+    <nav class="view-tabs-shell" id="view-tabs-shell" aria-label="ダッシュボード表示">
+      <div class="view-tabs" id="view-tabs" role="tablist" aria-label="表示する画面">
+        <button
+          id="view-now-tab"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="now-panel"
+          tabindex="0"
+          data-view="now"
+        >いま</button>
+        <button
+          id="view-trends-tab"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="trends-panel"
+          tabindex="-1"
+          data-view="trends"
+          disabled
+        >傾向</button>
+      </div>
+    </nav>
+
     <main>
       <div class="status-message" id="status-message" role="status" aria-live="polite">データを読み込んでいます…</div>
+
+      <section
+        class="view-panel"
+        id="now-panel"
+        role="tabpanel"
+        aria-labelledby="view-now-tab"
+        tabindex="0"
+      >
 
       <section class="hero-card" aria-labelledby="availability-heading">
         <div class="hero-copy">
@@ -94,6 +126,19 @@
         </div>
         <div class="type-grid" id="type-summary"></div>
       </section>
+      </section>
+
+      <section
+        class="view-panel"
+        id="trends-panel"
+        role="tabpanel"
+        aria-labelledby="view-trends-tab"
+        aria-busy="false"
+        tabindex="0"
+        hidden
+      >
+        <div class="history-state" id="history-state" role="status" aria-live="polite" hidden></div>
+        <div id="trends-content" hidden>
 
       <section class="dashboard-section" aria-labelledby="trend-heading">
         <div class="section-heading">
@@ -121,15 +166,21 @@
         <div class="analysis-summary" id="analysis-summary" aria-live="polite"></div>
 
         <section class="insight-block" aria-labelledby="heatmap-heading">
-          <div class="insight-heading">
+          <div class="insight-heading time-trend-heading">
             <div>
               <p class="section-kicker">WEEKDAY × TIME</p>
-              <h3 id="heatmap-heading">曜日 × 時間帯</h3>
+              <h3 id="heatmap-heading">時間帯別の空室傾向</h3>
             </div>
-            <span>平均空室数</span>
+            <div class="time-view-control">
+              <span id="time-view-label">表示範囲</span>
+              <div class="period-switch time-view-switch" id="time-view-tabs" role="group" aria-labelledby="time-view-label">
+                <button type="button" data-time-view="evening" aria-pressed="true">18–24時</button>
+                <button type="button" data-time-view="all-day" aria-pressed="false">全日</button>
+              </div>
+            </div>
           </div>
-          <p class="insight-help" id="heatmap-help">各セルは同じ重みのhour bucket平均です。nは観測された時間数です。</p>
-          <div class="heatmap-scroll" id="availability-heatmap" tabindex="0" aria-label="曜日と時間帯の平均空室数。横にスクロールできます" aria-describedby="heatmap-help"></div>
+          <p class="insight-help" id="heatmap-help">18〜22時は1時間、22〜24時は15分単位です。nは使用した日付別bucket数です。</p>
+          <div class="heatmap-scroll" id="availability-heatmap" tabindex="0" aria-label="時間帯別の平均空室数。横にスクロールできます" aria-describedby="heatmap-help"></div>
           <div class="heatmap-legend" aria-label="ヒートマップの固定色スケール">
             <span><i class="heat-level-0"></i>0–2未満</span>
             <span><i class="heat-level-1"></i>2–4未満</span>
@@ -167,6 +218,8 @@
 
         <p class="analysis-disclaimer">空室表示率は、公式空室ページ上でavailableとして確認できた割合です。実際の客室利用率や予約成功率を示すものではありません。</p>
       </section>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -175,6 +228,6 @@
     </footer>
 
     <noscript>このダッシュボードの表示にはJavaScriptが必要です。</noscript>
-    <script type="module" src="./app.js?v=4.2"></script>
+    <script type="module" src="./app.js?v=4.2.1"></script>
   </body>
 </html>

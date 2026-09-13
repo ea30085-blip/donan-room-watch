@@ -31,8 +31,8 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
     assert "viewport-fit=cover" in index
     assert '<html lang="ja">' in index
     assert '<main>' in index
-    assert '<link rel="stylesheet" href="./styles.css?v=4.2">' in index
-    assert '<script type="module" src="./app.js?v=4.2"></script>' in index
+    assert '<link rel="stylesheet" href="./styles.css?v=4.2.1">' in index
+    assert '<script type="module" src="./app.js?v=4.2.1"></script>' in index
     for element_id in [
         "available-count",
         "total-rooms",
@@ -48,6 +48,12 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
         "facility-insights",
         "ranking-filters",
         "room-ranking",
+        "view-tabs",
+        "now-panel",
+        "trends-panel",
+        "history-state",
+        "trends-content",
+        "time-view-tabs",
     ]:
         assert f'id="{element_id}"' in index
 
@@ -79,6 +85,9 @@ def test_dashboard_css_is_mobile_first_and_safe_area_aware() -> None:
     assert "flex-wrap: wrap" in styles
     assert ".analysis-summary" in styles
     assert ".room-ranking" in styles
+    assert "position: sticky" in styles
+    assert "panel-from-right" in styles
+    assert "panel-from-left" in styles
 
 
 def test_dashboard_uses_same_origin_data_and_periodic_cache_busting() -> None:
@@ -89,6 +98,8 @@ def test_dashboard_uses_same_origin_data_and_periodic_cache_busting() -> None:
     assert 'rooms: "./config/rooms.json"' in app
     assert 'cache: "no-store"' in app
     assert "Date.now()" in app
+    assert 'from "./analytics-utils.js?v=4.2.1"' in app
+    assert 'from "./data-utils.js?v=4.2.1"' in app
     assert "setInterval(pollLatest, 300000)" in app
     assert "raw.githubusercontent.com" not in app
 
@@ -126,6 +137,58 @@ def test_dashboard_history_ui_uses_rolling_analysis_and_separate_filters() -> No
     assert "state.rankingFacility" in app
     assert "本日の空室数推移" not in index
     assert "featured-timeline" not in index
+
+
+def test_dashboard_has_accessible_now_and_trends_tabs() -> None:
+    index = (WEB / "index.html").read_text(encoding="utf-8")
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert 'role="tablist"' in index
+    assert 'id="view-now-tab"' in index
+    assert 'aria-selected="true"' in index
+    assert 'aria-controls="now-panel"' in index
+    assert 'id="view-trends-tab"' in index
+    assert 'aria-selected="false"' in index
+    assert 'aria-controls="trends-panel"' in index
+    assert 'id="trends-panel"' in index and "hidden" in index
+    assert 'role="tabpanel"' in index
+    assert 'state.activeView = view' in app
+    assert 'event.key === "ArrowRight"' in app
+    assert 'event.key === "ArrowLeft"' in app
+    assert 'event.key === "Home"' in app
+    assert 'event.key === "End"' in app
+
+
+def test_history_is_loaded_only_after_trends_is_requested() -> None:
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert "historyLoaded: false" in app
+    assert "historyLoading: false" in app
+    assert "historyRequest: null" in app
+    assert 'if (view === "trends") ensureHistoryLoaded();' in app
+    assert "if (state.historyLoaded && !force)" in app
+    assert "if (state.historyLoading) return state.historyRequest" in app
+    assert "if (state.historyLoaded) await ensureHistoryLoaded({ force: true });" in app
+    assert "renderCurrentData();\n    if (state.historyLoaded)" in app
+    assert 'fetchFresh(DATA_URLS.history, "text")' in app
+    assert "現在の空室は表示できましたが" not in app
+
+
+def test_time_trend_modes_are_independent_from_period_tabs() -> None:
+    index = (WEB / "index.html").read_text(encoding="utf-8")
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert "時間帯別の空室傾向" in index
+    assert 'data-time-view="evening"' in index
+    assert 'data-time-view="all-day"' in index
+    assert "18–24時" in index
+    assert "全日" in index
+    assert 'timeViewMode: "evening"' in app
+    assert "state.analysisHours = Number(button.dataset.hours)" in app
+    assert "state.timeViewMode = button.dataset.timeView" in app
+    assert "analysis.eveningTime" in app
+    assert "analysis.allDayTime" in app
+    assert "cellData.bucketCount < 3" in app
 
 
 def test_facility_ui_uses_central_metadata_and_accessible_filter_state() -> None:

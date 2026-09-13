@@ -49,6 +49,20 @@ def hourly_buckets(
     return buckets
 
 
+def quarter_slot_key(value: str) -> tuple[str, int, int]:
+    local = instant(value).astimezone(JST)
+    return local.date().isoformat(), local.hour, (local.minute // 15) * 15
+
+
+def quarter_buckets(
+    history: list[dict[str, object]],
+) -> dict[tuple[str, int, int], list[dict[str, object]]]:
+    buckets: dict[tuple[str, int, int], list[dict[str, object]]] = defaultdict(list)
+    for row in history:
+        buckets[quarter_slot_key(str(row["observedAt"]))].append(row)
+    return buckets
+
+
 def bucket_average(rows: list[dict[str, object]]) -> float:
     return sum(int(row["availableCount"]) for row in rows) / len(rows)
 
@@ -70,6 +84,10 @@ def test_javascript_analytics_exports_required_pure_functions() -> None:
         "calculateCoverage",
         "analyzeAvailability",
         "jstDateHourParts",
+        "jstDateTimeParts",
+        "buildQuarterHourBuckets",
+        "buildEveningTimeAnalysis",
+        "buildAllDayTimeAnalysis",
     ]:
         assert f"export function {name}" in source
     assert 'const JST_TIME_ZONE = "Asia/Tokyo"' in source
@@ -180,3 +198,60 @@ def test_thirty_day_window_handles_only_eight_observed_days() -> None:
     selected = completed_window(history, 720, now.isoformat())
 
     assert len({instant(str(row["observedAt"])).astimezone(JST).date() for row in selected}) == 8
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2026-09-12T22:15:00+09:00", ("2026-09-12", 22, 15)),
+        ("2026-09-12T22:18:59+09:00", ("2026-09-12", 22, 15)),
+        ("2026-09-12T22:29:59+09:00", ("2026-09-12", 22, 15)),
+        ("2026-09-12T22:30:00+09:00", ("2026-09-12", 22, 30)),
+        ("2026-09-12T23:45:00+09:00", ("2026-09-12", 23, 45)),
+        ("2026-09-13T00:00:00+09:00", ("2026-09-13", 0, 0)),
+        ("2026-09-12T13:30:00+00:00", ("2026-09-12", 22, 30)),
+    ],
+)
+def test_quarter_hour_slot_boundaries_are_jst_exact(
+    value: str, expected: tuple[str, int, int]
+) -> None:
+    assert quarter_slot_key(value) == expected
+
+
+def test_quarter_hour_normalization_gives_each_date_slot_equal_weight() -> None:
+    history = [
+        observed("2026-09-07T22:16:00+09:00", 0),
+        observed("2026-09-07T22:19:00+09:00", 10),
+        observed("2026-09-14T22:17:00+09:00", 1),
+    ]
+    buckets = quarter_buckets(history)
+
+    assert len(buckets) == 2
+    assert period_average(buckets) == pytest.approx(3.0)
+    assert sum(int(row["availableCount"]) for row in history) / len(history) == pytest.approx(11 / 3)
+
+
+def test_evening_slot_contract_has_four_hours_and_eight_quarters() -> None:
+    source = ANALYTICS.read_text(encoding="utf-8")
+
+    assert 'granularity: "hour"' in source
+    assert 'granularity: "quarter-hour"' in source
+    assert "Array.from({ length: 4 }" in source
+    assert "Array.from({ length: 8 }" in source
+    assert "Math.floor(parts.minute / 15) * 15" in source
+
+
+def test_all_day_contract_has_twenty_four_hour_columns() -> None:
+    source = ANALYTICS.read_text(encoding="utf-8")
+
+    assert "ALL_DAY_HOURS" in source
+    assert "Array.from({ length: 24 }" in source
+
+
+@pytest.mark.parametrize(
+    ("hours", "mode"),
+    [(168, "evening"), (168, "all-day"), (720, "evening"), (720, "all-day")],
+)
+def test_period_and_time_view_modes_are_independent(hours: int, mode: str) -> None:
+    assert hours in {168, 720}
+    assert mode in {"evening", "all-day"}

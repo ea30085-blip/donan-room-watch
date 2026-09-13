@@ -78,6 +78,7 @@ button {
 }
 
 .site-header,
+.view-tabs,
 main,
 footer {
   width: min(100%, var(--page-width));
@@ -93,6 +94,76 @@ footer {
   gap: 16px;
   padding-top: max(22px, env(safe-area-inset-top));
   padding-bottom: 18px;
+}
+
+.view-tabs-shell {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  background: rgba(9, 12, 17, 0.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.view-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.view-tabs button {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-strong);
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  touch-action: manipulation;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.view-tabs button[aria-selected="true"] {
+  border-color: rgba(113, 231, 176, 0.34);
+  background: rgba(113, 231, 176, 0.12);
+  color: var(--accent);
+  box-shadow: inset 0 0 18px rgba(113, 231, 176, 0.045);
+}
+
+.view-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.view-tabs button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.view-panel {
+  min-width: 0;
+  outline: none;
+}
+
+.view-panel.slide-from-right {
+  animation: panel-from-right 210ms ease-out both;
+}
+
+.view-panel.slide-from-left {
+  animation: panel-from-left 210ms ease-out both;
+}
+
+@keyframes panel-from-right {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes panel-from-left {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .eyebrow,
@@ -177,6 +248,52 @@ h2 {
   border-color: rgba(255, 140, 140, 0.35);
   background: rgba(255, 140, 140, 0.08);
   color: #ffd1d1;
+}
+
+.history-state {
+  margin-top: 24px;
+  padding: 34px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--muted-strong);
+  text-align: center;
+}
+
+.history-state.loading::before {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 9px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -2px;
+  content: "";
+  animation: loading-spin 800ms linear infinite;
+}
+
+.history-state.error {
+  border-color: rgba(255, 140, 140, 0.28);
+  color: #ffd1d1;
+}
+
+.history-state p {
+  margin-bottom: 14px;
+}
+
+.history-state button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
 }
 
 .hero-card {
@@ -709,6 +826,21 @@ h2 {
   font-size: 0.68rem;
 }
 
+.time-view-control {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.time-view-control > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.time-view-switch button {
+  min-width: 78px;
+}
+
 .insight-help {
   margin: 0 0 10px;
   line-height: 1.55;
@@ -732,11 +864,18 @@ h2 {
 
 .heatmap-table {
   width: 100%;
-  min-width: 650px;
   border-collapse: separate;
   border-spacing: 4px;
   padding: 5px;
   table-layout: fixed;
+}
+
+.heatmap-table.mode-evening {
+  min-width: 1010px;
+}
+
+.heatmap-table.mode-all-day {
+  min-width: 1610px;
 }
 
 .heatmap-table th {
@@ -746,20 +885,42 @@ h2 {
 }
 
 .heatmap-table thead th {
-  height: 34px;
+  height: 45px;
+  line-height: 1.25;
+}
+
+.heatmap-table thead th:first-child {
+  position: sticky;
+  z-index: 3;
+  left: 5px;
+  width: 54px;
+  background: var(--surface-soft);
+}
+
+.heatmap-table thead th span,
+.heatmap-table thead th small {
+  display: block;
+}
+
+.heatmap-table thead th small {
+  color: var(--muted);
+  font-size: 0.57rem;
+  font-weight: 650;
 }
 
 .heatmap-table tbody th {
   position: sticky;
   left: 5px;
   z-index: 1;
-  width: 58px;
+  width: 54px;
+  min-width: 54px;
   border-radius: 8px;
   background: #171d26;
 }
 
 .heatmap-cell {
-  height: 54px;
+  width: 72px;
+  height: 56px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 9px;
   color: var(--text);
@@ -769,6 +930,11 @@ h2 {
 .heatmap-cell strong,
 .heatmap-cell small {
   display: block;
+}
+
+.heatmap-cell.is-low-sample {
+  opacity: 0.72;
+  filter: saturate(0.62);
 }
 
 .heatmap-cell strong {
@@ -1024,6 +1190,19 @@ noscript {
 
   .period-switch button {
     flex: 1;
+  }
+
+  .time-trend-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .time-view-control {
+    justify-items: stretch;
+  }
+
+  .time-view-switch {
+    display: flex;
   }
 }
 

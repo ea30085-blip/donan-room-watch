@@ -6,15 +6,16 @@ import {
   summarizeTypes,
   validateLatest,
   validateRoomConfig,
-} from "./data-utils.js";
-import { FACILITY_KEYS, FACILITY_META } from "./facility-meta.js";
+} from "./data-utils.js?v=4.2.1";
+import { FACILITY_KEYS, FACILITY_META } from "./facility-meta.js?v=4.2.1";
 import {
+  ALL_DAY_HOURS,
+  EVENING_TIME_SLOTS,
   HOUR_MS,
-  TIME_BANDS,
   WEEKDAY_LABELS,
   analyzeAvailability,
   filterHistoryByRollingHours,
-} from "./analytics-utils.js";
+} from "./analytics-utils.js?v=4.2.1";
 
 const FEATURED_ROOMS = ["611", "612", "615"];
 const DATA_URLS = {
@@ -24,14 +25,19 @@ const DATA_URLS = {
 };
 
 const state = {
+  activeView: "now",
   latest: null,
   masterRooms: [],
   history: [],
+  historyLoaded: false,
+  historyLoading: false,
+  historyRequest: null,
   historyError: null,
   loading: false,
   activeFacility: null,
   analysisHours: 168,
   analysis: null,
+  timeViewMode: "evening",
   rankingFacility: null,
   rankingExpanded: false,
 };
@@ -319,34 +325,63 @@ function heatLevel(value) {
   return "heat-level-4";
 }
 
+function renderTimeViewControls() {
+  for (const button of element("time-view-tabs").querySelectorAll("button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.timeView === state.timeViewMode));
+  }
+}
+
 function renderHeatmap(analysis) {
+  const isEvening = state.timeViewMode === "evening";
+  const columns = isEvening ? EVENING_TIME_SLOTS : ALL_DAY_HOURS;
+  const cells = isEvening ? analysis.eveningTime : analysis.allDayTime;
+  const cellMap = new Map(cells.map((cell) => [
+    `${cell.weekdayIndex}:${isEvening ? cell.slotKey : cell.hour}`,
+    cell,
+  ]));
   const table = document.createElement("table");
-  table.className = "heatmap-table";
+  table.className = `heatmap-table ${isEvening ? "mode-evening" : "mode-all-day"}`;
   const caption = document.createElement("caption");
   caption.className = "visually-hidden";
-  caption.textContent = `${state.analysisHours / 24}日間の曜日と2時間帯別平均空室数`;
+  caption.textContent = `${state.analysisHours / 24}日間の時間帯別平均空室数`;
   const head = document.createElement("thead");
   const headRow = document.createElement("tr");
-  headRow.innerHTML = `<th scope="col">時間</th>${WEEKDAY_LABELS.map((label) => `<th scope="col">${label}</th>`).join("")}`;
+  const corner = document.createElement("th");
+  corner.scope = "col";
+  corner.textContent = "曜日";
+  headRow.append(corner);
+  for (const column of columns) {
+    const heading = document.createElement("th");
+    heading.scope = "col";
+    if (isEvening) {
+      const [start, end] = column.label.split("–");
+      heading.innerHTML = `<span>${start}</span><small>–${end}</small>`;
+      heading.dataset.slot = column.key;
+    } else {
+      heading.textContent = String(column).padStart(2, "0");
+      heading.dataset.hour = String(column);
+    }
+    headRow.append(heading);
+  }
   head.append(headRow);
   const body = document.createElement("tbody");
-  for (const band of TIME_BANDS) {
+  for (const [weekdayIndex, weekday] of WEEKDAY_LABELS.entries()) {
     const row = document.createElement("tr");
     const heading = document.createElement("th");
     heading.scope = "row";
-    heading.textContent = band.label;
+    heading.textContent = weekday;
     row.append(heading);
-    for (const weekday of WEEKDAY_LABELS) {
-      const cellData = analysis.heatmap.find(
-        (cell) => cell.startHour === band.startHour && cell.weekday === weekday,
-      );
+    for (const column of columns) {
+      const columnKey = isEvening ? column.key : column;
+      const cellData = cellMap.get(`${weekdayIndex}:${columnKey}`);
       const cell = document.createElement("td");
-      cell.className = `heatmap-cell ${heatLevel(cellData.averageAvailableCount)}`;
+      const isLowSample = cellData.bucketCount > 0 && cellData.bucketCount < 3;
+      cell.className = `heatmap-cell ${heatLevel(cellData.averageAvailableCount)}${isLowSample ? " is-low-sample" : ""}`;
       cell.setAttribute(
         "aria-label",
         cellData.averageAvailableCount === null
-          ? `${weekday}曜 ${band.label}時、データなし`
-          : `${weekday}曜 ${band.label}時、平均${cellData.averageAvailableCount.toFixed(1)}室、n=${cellData.bucketCount}`,
+          ? `${weekday}曜日 ${cellData.ariaLabel}、データなし、n=0`
+          : `${weekday}曜日 ${cellData.ariaLabel}、平均空室${cellData.averageAvailableCount.toFixed(1)}室、n=${cellData.bucketCount}`,
       );
       cell.innerHTML = cellData.averageAvailableCount === null
         ? "<strong>--</strong><small>n=0</small>"
@@ -356,7 +391,21 @@ function renderHeatmap(analysis) {
     body.append(row);
   }
   table.append(caption, head, body);
-  element("availability-heatmap").replaceChildren(table);
+  const container = element("availability-heatmap");
+  container.setAttribute(
+    "aria-label",
+    `${isEvening ? "18時から24時" : "全日"}の時間帯別平均空室数。横にスクロールできます`,
+  );
+  container.replaceChildren(table);
+  element("heatmap-help").textContent = isEvening
+    ? "18〜22時は1時間bucket、22〜24時は15分date-slotです。nは使用した日付別bucket数です。"
+    : "00〜23時を1時間bucketで表示します。nは使用したdate-hour bucket数です。";
+  if (!isEvening && window.matchMedia("(max-width: 520px)").matches) {
+    requestAnimationFrame(() => {
+      const hour18 = table.querySelector('thead th[data-hour="18"]');
+      if (hour18) container.scrollLeft = Math.max(0, hour18.offsetLeft - 64);
+    });
+  }
 }
 
 function renderFacilityInsights(analysis) {
@@ -448,6 +497,7 @@ function renderRoomRanking(analysis) {
 
 function renderAnalytics(now = new Date()) {
   renderPeriodControls();
+  renderTimeViewControls();
   renderRankingFilters();
   if (state.historyError) {
     state.analysis = null;
@@ -477,6 +527,9 @@ function renderAnalytics(now = new Date()) {
 }
 
 function renderHistory(now = new Date()) {
+  element("history-state").hidden = true;
+  element("trends-content").hidden = false;
+  element("trends-panel").setAttribute("aria-busy", "false");
   renderRecentActivity(now);
   renderAnalytics(now);
 }
@@ -487,24 +540,99 @@ function renderCurrentData() {
   renderFacilityFilters();
   renderAvailableRooms();
   renderTypeSummary();
-  renderHistory();
 }
 
-async function loadHistory() {
-  try {
-    state.history = parseHistory(await fetchFresh(DATA_URLS.history, "text"));
-    state.historyError = null;
-  } catch (error) {
-    console.error(error);
-    state.history = [];
-    state.historyError = error.message;
+function renderHistoryLoading() {
+  const target = element("history-state");
+  target.className = "history-state loading";
+  target.textContent = "履歴データを読み込んでいます…";
+  target.hidden = false;
+  element("trends-content").hidden = true;
+  element("trends-panel").setAttribute("aria-busy", "true");
+}
+
+function renderHistoryError() {
+  const target = element("history-state");
+  target.className = "history-state error";
+  const message = document.createElement("p");
+  message.textContent = `履歴データを読み込めませんでした。${state.historyError}`;
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.textContent = "再読み込み";
+  retry.addEventListener("click", () => ensureHistoryLoaded({ force: true }));
+  target.replaceChildren(message, retry);
+  target.hidden = false;
+  element("trends-content").hidden = true;
+  element("trends-panel").setAttribute("aria-busy", "false");
+}
+
+async function ensureHistoryLoaded({ force = false } = {}) {
+  if (state.historyLoading) return state.historyRequest;
+  if (state.historyLoaded && !force) {
+    if (state.historyError) renderHistoryError();
+    else renderHistory();
+    return true;
   }
+
+  state.historyLoading = true;
+  state.historyError = null;
+  renderHistoryLoading();
+  state.historyRequest = (async () => {
+    try {
+      const history = parseHistory(await fetchFresh(DATA_URLS.history, "text"));
+      state.history = history;
+      state.historyLoaded = true;
+      state.historyError = null;
+      renderHistory();
+      return true;
+    } catch (error) {
+      console.error(error);
+      state.historyError = error.message;
+      if (!state.historyLoaded) state.history = [];
+      renderHistoryError();
+      return false;
+    } finally {
+      state.historyLoading = false;
+      state.historyRequest = null;
+      element("trends-panel").setAttribute("aria-busy", "false");
+    }
+  })();
+  return state.historyRequest;
+}
+
+function activateView(view, { focus = false } = {}) {
+  if (!["now", "trends"].includes(view)) return;
+  const previousView = state.activeView;
+  state.activeView = view;
+  for (const tab of element("view-tabs").querySelectorAll('[role="tab"]')) {
+    const selected = tab.dataset.view === view;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    if (selected && focus) tab.focus();
+  }
+  for (const panel of document.querySelectorAll('.view-panel[role="tabpanel"]')) {
+    const active = panel.id === `${view}-panel`;
+    panel.hidden = !active;
+    panel.classList.remove("slide-from-left", "slide-from-right");
+    if (active && previousView !== view) {
+      panel.classList.add(view === "trends" ? "slide-from-right" : "slide-from-left");
+      panel.addEventListener(
+        "animationend",
+        () => panel.classList.remove("slide-from-left", "slide-from-right"),
+        { once: true },
+      );
+    }
+  }
+  const tabsTop = element("view-tabs-shell").offsetTop;
+  if (window.scrollY > tabsTop + 24) window.scrollTo({ top: tabsTop, behavior: "smooth" });
+  if (view === "trends") ensureHistoryLoaded();
 }
 
 async function loadAllData() {
   if (state.loading) return;
   state.loading = true;
   element("refresh-button").disabled = true;
+  element("view-trends-tab").disabled = true;
   setStatus("最新データを確認しています…");
   try {
     const [roomsDocument, latestDocument] = await Promise.all([
@@ -515,15 +643,16 @@ async function loadAllData() {
     const latest = validateLatest(latestDocument, masterRooms);
     state.masterRooms = masterRooms;
     state.latest = latest;
-    await loadHistory();
     renderCurrentData();
-    setStatus(state.historyError ? "現在の空室は表示できましたが、履歴データを読み込めませんでした。" : "", Boolean(state.historyError));
+    if (state.historyLoaded) await ensureHistoryLoaded({ force: true });
+    setStatus("");
   } catch (error) {
     console.error(error);
     setStatus(`データを表示できません。${error.message}`, true);
   } finally {
     state.loading = false;
     element("refresh-button").disabled = false;
+    element("view-trends-tab").disabled = !state.latest || state.masterRooms.length === 0;
   }
 }
 
@@ -533,11 +662,11 @@ async function pollLatest() {
     const next = validateLatest(await fetchFresh(DATA_URLS.latest), state.masterRooms);
     if (next.observed_at !== state.latest.observed_at) {
       state.latest = next;
-      await loadHistory();
       renderCurrentData();
+      if (state.historyLoaded) await ensureHistoryLoaded({ force: true });
       setStatus("新しい観測データに更新しました。");
       setTimeout(() => setStatus(""), 3500);
-    } else {
+    } else if (state.historyLoaded && state.activeView === "trends") {
       renderHistory();
     }
   } catch (error) {
@@ -547,12 +676,37 @@ async function pollLatest() {
 }
 
 element("refresh-button").addEventListener("click", loadAllData);
+element("view-tabs").addEventListener("click", (event) => {
+  const tab = event.target.closest('[role="tab"][data-view]');
+  if (tab) activateView(tab.dataset.view);
+});
+element("view-tabs").addEventListener("keydown", (event) => {
+  const tabs = [...element("view-tabs").querySelectorAll('[role="tab"]')]
+    .filter((tab) => !tab.disabled);
+  const currentIndex = tabs.indexOf(event.target);
+  if (currentIndex < 0) return;
+  let nextIndex = currentIndex;
+  if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length;
+  else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+  else if (event.key === "Home") nextIndex = 0;
+  else if (event.key === "End") nextIndex = tabs.length - 1;
+  else return;
+  event.preventDefault();
+  activateView(tabs[nextIndex].dataset.view, { focus: true });
+});
 element("analysis-period-tabs").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-hours]");
   if (!button) return;
   state.analysisHours = Number(button.dataset.hours);
   state.rankingExpanded = false;
   renderAnalytics();
+});
+element("time-view-tabs").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-time-view]");
+  if (!button) return;
+  state.timeViewMode = button.dataset.timeView;
+  renderTimeViewControls();
+  renderHeatmap(state.analysis);
 });
 element("ranking-toggle").addEventListener("click", () => {
   state.rankingExpanded = !state.rankingExpanded;

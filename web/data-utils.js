@@ -1,4 +1,4 @@
-import { FACILITY_KEYS } from "./facility-meta.js";
+import { FACILITY_KEYS } from "./facility-meta.js?v=4.2.1";
 
 const JST_TIME_ZONE = "Asia/Tokyo";
 const FACILITY_KEY_SET = new Set(FACILITY_KEYS);
