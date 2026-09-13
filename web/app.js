@@ -3,14 +3,18 @@ import {
   filterAvailableRooms,
   formatJstDateTime,
   parseHistory,
-  roomTimeline,
   summarizeTypes,
-  todaysHistory,
-  tokyoTimeLabel,
   validateLatest,
   validateRoomConfig,
 } from "./data-utils.js";
 import { FACILITY_KEYS, FACILITY_META } from "./facility-meta.js";
+import {
+  HOUR_MS,
+  TIME_BANDS,
+  WEEKDAY_LABELS,
+  analyzeAvailability,
+  filterHistoryByRollingHours,
+} from "./analytics-utils.js";
 
 const FEATURED_ROOMS = ["611", "612", "615"];
 const DATA_URLS = {
@@ -26,6 +30,10 @@ const state = {
   historyError: null,
   loading: false,
   activeFacility: null,
+  analysisHours: 168,
+  analysis: null,
+  rankingFacility: null,
+  rankingExpanded: false,
 };
 
 function element(id) {
@@ -190,14 +198,24 @@ function svgElement(name, attributes = {}) {
   return node;
 }
 
-function renderAvailabilityChart(today) {
+function shortJstDateTime(value) {
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+}
+
+function renderAvailabilityChart(recent, now) {
   const container = element("availability-chart");
-  if (state.historyError) {
-    renderEmpty(container, `履歴を表示できません。${state.historyError}`);
-    return;
-  }
-  if (today.length === 0) {
-    renderEmpty(container, "本日の観測データはまだありません。");
+  const startMs = now.getTime() - 24 * HOUR_MS;
+  const endMs = now.getTime();
+  element("recent-range").textContent = `${shortJstDateTime(startMs)} 〜 ${shortJstDateTime(endMs)}`;
+  if (recent.length === 0) {
+    renderEmpty(container, "直近24時間の観測データはありません。欠損時間を0室としては扱いません。");
     return;
   }
 
@@ -206,16 +224,16 @@ function renderAvailabilityChart(today) {
   const padding = { top: 24, right: 18, bottom: 38, left: 38 };
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
-  const maximum = Math.max(5, Math.ceil(Math.max(...today.map((entry) => entry.availableCount)) / 5) * 5);
-  const x = (index) => padding.left + (today.length === 1 ? innerWidth / 2 : (index / (today.length - 1)) * innerWidth);
+  const maximum = Math.max(5, Math.ceil(Math.max(...recent.map((entry) => entry.availableCount)) / 5) * 5);
+  const x = (entry) => padding.left + ((new Date(entry.observedAt).getTime() - startMs) / (endMs - startMs)) * innerWidth;
   const y = (value) => padding.top + innerHeight - (value / maximum) * innerHeight;
   const svg = svgElement("svg", {
     viewBox: `0 0 ${width} ${height}`,
     role: "img",
-    "aria-label": `本日の空室数推移、${today.length}観測`,
+    "aria-label": `直近24時間の空室数推移、${recent.length}観測`,
   });
   const title = svgElement("title");
-  title.textContent = "本日の空室数推移";
+  title.textContent = "直近24時間の空室数推移";
   svg.append(title);
 
   for (const value of [maximum, Math.round(maximum / 2), 0]) {
@@ -226,84 +244,241 @@ function renderAvailabilityChart(today) {
     svg.append(label);
   }
 
-  const points = today.map((entry, index) => `${x(index)},${y(entry.availableCount)}`).join(" ");
-  if (today.length > 1) svg.append(svgElement("polyline", { points, class: "chart-line" }));
-  today.forEach((entry, index) => {
-    const dot = svgElement("circle", { cx: x(index), cy: y(entry.availableCount), r: 4.5, class: "chart-dot" });
+  const points = recent.map((entry) => `${x(entry)},${y(entry.availableCount)}`).join(" ");
+  if (recent.length > 1) svg.append(svgElement("polyline", { points, class: "chart-line" }));
+  recent.forEach((entry) => {
+    const dot = svgElement("circle", { cx: x(entry), cy: y(entry.availableCount), r: 4.5, class: "chart-dot" });
     const dotTitle = svgElement("title");
-    dotTitle.textContent = `${tokyoTimeLabel(entry.observedAt)} ${entry.availableCount}室`;
+    dotTitle.textContent = `${shortJstDateTime(entry.observedAt)} ${entry.availableCount}室`;
     dot.append(dotTitle);
     svg.append(dot);
   });
 
-  const labelIndexes = [...new Set([0, Math.floor((today.length - 1) / 2), today.length - 1])];
-  labelIndexes.forEach((index) => {
-    const label = svgElement("text", { x: x(index), y: height - 12, class: "chart-time-label", "text-anchor": index === 0 ? "start" : index === today.length - 1 ? "end" : "middle" });
-    label.textContent = tokyoTimeLabel(today[index].observedAt);
+  [0, 0.5, 1].forEach((ratio) => {
+    const timestamp = startMs + (endMs - startMs) * ratio;
+    const label = svgElement("text", {
+      x: padding.left + innerWidth * ratio,
+      y: height - 12,
+      class: "chart-time-label",
+      "text-anchor": ratio === 0 ? "start" : ratio === 1 ? "end" : "middle",
+    });
+    label.textContent = shortJstDateTime(timestamp);
     svg.append(label);
   });
 
   container.replaceChildren(svg);
-  if (today.length === 1) {
-    const note = document.createElement("p");
-    note.className = "data-note";
-    note.textContent = "観測点が1件のため、推移グラフはデータ蓄積中です。";
-    container.append(note);
-  }
+  const note = document.createElement("p");
+  note.className = "data-note";
+  note.textContent = recent.length === 1
+    ? "観測点が1件のため、推移グラフはデータ蓄積中です。"
+    : `観測 ${recent.length}件。日付を跨いだraw観測を時刻間隔どおりに表示しています。`;
+  container.append(note);
 }
 
-function renderFeaturedTimeline(today) {
-  const container = element("featured-timeline");
+function renderRecentActivity(now = new Date()) {
+  const container = element("availability-chart");
   if (state.historyError) {
     renderEmpty(container, `履歴を表示できません。${state.historyError}`);
     return;
   }
-  if (today.length === 0) {
-    renderEmpty(container, "本日の611 / 615の履歴はまだありません。");
-    return;
-  }
-
-  const scroll = document.createElement("div");
-  scroll.className = "timeline-scroll";
-  scroll.tabIndex = 0;
-  scroll.setAttribute("aria-label", "611号室と615号室の本日の状態推移。横にスクロールできます");
-  const grid = document.createElement("div");
-  grid.className = "timeline-grid";
-  grid.style.setProperty("--timeline-count", today.length);
-
-  const corner = document.createElement("div");
-  corner.className = "timeline-corner";
-  corner.textContent = "Room";
-  grid.append(corner);
-  today.forEach((entry) => {
-    const time = document.createElement("time");
-    time.className = "timeline-time";
-    time.dateTime = entry.observedAt;
-    time.textContent = tokyoTimeLabel(entry.observedAt);
-    grid.append(time);
-  });
-
-  for (const roomNumber of ["611", "615"]) {
-    const room = document.createElement("strong");
-    room.className = "timeline-room";
-    room.textContent = roomNumber;
-    grid.append(room);
-    roomTimeline(today, roomNumber).forEach((point) => {
-      const status = document.createElement("div");
-      status.className = `timeline-status ${point.available ? "available" : "not-available"}`;
-      status.setAttribute("aria-label", `${roomNumber}号室 ${point.time} ${point.available ? "空室あり" : "現在空室表示なし"}`);
-      status.innerHTML = `<i aria-hidden="true">${point.available ? "○" : "×"}</i><span>${point.available ? "空室" : "表示なし"}</span>`;
-      grid.append(status);
-    });
-  }
-  scroll.append(grid);
-  container.replaceChildren(scroll);
+  renderAvailabilityChart(filterHistoryByRollingHours(state.history, 24, now), now);
 }
 
-function renderHistory() {
-  const today = state.historyError ? [] : todaysHistory(state.history);
-  renderAvailabilityChart(today);
-  renderFeaturedTimeline(today);
+function formatDecimal(value, suffix = "") {
+  return value === null ? "--" : `${value.toFixed(1)}${suffix}`;
+}
+
+function renderPeriodControls() {
+  for (const button of element("analysis-period-tabs").querySelectorAll("button")) {
+    button.setAttribute("aria-pressed", String(Number(button.dataset.hours) === state.analysisHours));
+  }
+}
+
+function renderAnalysisSummary(analysis) {
+  const items = [
+    ["観測ログ", `${analysis.observationCount}件`],
+    ["観測時間", `${analysis.bucketCount} / ${analysis.hours}時間`],
+    ["カバレッジ", `${analysis.coverage.percentage.toFixed(1)}%`],
+    ["データ", `${analysis.dayCount}日分`],
+    ["平均空室", formatDecimal(analysis.averageAvailableCount, "室")],
+  ];
+  element("analysis-summary").replaceChildren(...items.map(([label, value]) => {
+    const card = document.createElement("article");
+    card.className = "summary-card";
+    card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    return card;
+  }));
+}
+
+function heatLevel(value) {
+  if (value === null) return "heat-empty";
+  if (value < 2) return "heat-level-0";
+  if (value < 4) return "heat-level-1";
+  if (value < 6) return "heat-level-2";
+  if (value < 8) return "heat-level-3";
+  return "heat-level-4";
+}
+
+function renderHeatmap(analysis) {
+  const table = document.createElement("table");
+  table.className = "heatmap-table";
+  const caption = document.createElement("caption");
+  caption.className = "visually-hidden";
+  caption.textContent = `${state.analysisHours / 24}日間の曜日と2時間帯別平均空室数`;
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headRow.innerHTML = `<th scope="col">時間</th>${WEEKDAY_LABELS.map((label) => `<th scope="col">${label}</th>`).join("")}`;
+  head.append(headRow);
+  const body = document.createElement("tbody");
+  for (const band of TIME_BANDS) {
+    const row = document.createElement("tr");
+    const heading = document.createElement("th");
+    heading.scope = "row";
+    heading.textContent = band.label;
+    row.append(heading);
+    for (const weekday of WEEKDAY_LABELS) {
+      const cellData = analysis.heatmap.find(
+        (cell) => cell.startHour === band.startHour && cell.weekday === weekday,
+      );
+      const cell = document.createElement("td");
+      cell.className = `heatmap-cell ${heatLevel(cellData.averageAvailableCount)}`;
+      cell.setAttribute(
+        "aria-label",
+        cellData.averageAvailableCount === null
+          ? `${weekday}曜 ${band.label}時、データなし`
+          : `${weekday}曜 ${band.label}時、平均${cellData.averageAvailableCount.toFixed(1)}室、n=${cellData.bucketCount}`,
+      );
+      cell.innerHTML = cellData.averageAvailableCount === null
+        ? "<strong>--</strong><small>n=0</small>"
+        : `<strong>${cellData.averageAvailableCount.toFixed(1)}</strong><small>n=${cellData.bucketCount}</small>`;
+      row.append(cell);
+    }
+    body.append(row);
+  }
+  table.append(caption, head, body);
+  element("availability-heatmap").replaceChildren(table);
+}
+
+function renderFacilityInsights(analysis) {
+  element("facility-insights").replaceChildren(...analysis.facilityRates.map((item) => {
+    const meta = FACILITY_META[item.facility];
+    const card = document.createElement("article");
+    card.className = "facility-insight-card";
+    const rateText = item.rate === null ? "--" : `${(item.rate * 100).toFixed(1)}%`;
+    card.setAttribute(
+      "aria-label",
+      `${meta.label}、空室あり率${rateText}、対象${item.targetRooms.length}室、観測時間${item.bucketCount}`,
+    );
+    card.innerHTML = `
+      <header><span aria-hidden="true">${meta.icon}</span><strong>${meta.label}</strong></header>
+      <p><span>空室あり率</span><b>${rateText}</b></p>
+      <small>対象 ${item.targetRooms.length}室 · n=${item.bucketCount}時間</small>
+    `;
+    return card;
+  }));
+}
+
+function renderRankingFilters() {
+  const options = [
+    { key: null, label: "すべて", icon: null },
+    ...FACILITY_KEYS.map((key) => ({ key, ...FACILITY_META[key] })),
+  ];
+  element("ranking-filters").replaceChildren(...options.map(({ key, label, icon }) => {
+    const button = document.createElement("button");
+    const isActive = state.rankingFacility === key;
+    button.type = "button";
+    button.disabled = Boolean(state.historyError);
+    button.className = `facility-filter${isActive ? " active" : ""}`;
+    button.setAttribute("aria-pressed", String(isActive));
+    button.setAttribute("aria-label", key ? `${label}付き客室のランキング` : "全客室のランキング");
+    if (icon) {
+      const symbol = document.createElement("span");
+      symbol.setAttribute("aria-hidden", "true");
+      symbol.textContent = icon;
+      button.append(symbol);
+    }
+    button.append(document.createTextNode(label));
+    button.addEventListener("click", () => {
+      state.rankingFacility = key;
+      state.rankingExpanded = false;
+      renderRankingFilters();
+      if (state.analysis) renderRoomRanking(state.analysis);
+    });
+    return button;
+  }));
+}
+
+function renderRoomRanking(analysis) {
+  const filtered = analysis.roomRates.filter(
+    (room) => state.rankingFacility === null || room.facilities.includes(state.rankingFacility),
+  );
+  const label = state.rankingFacility ? FACILITY_META[state.rankingFacility].label : "すべて";
+  element("ranking-count-note").textContent = `${label}：${filtered.length}室`;
+  const list = element("room-ranking");
+  if (analysis.bucketCount === 0) {
+    const item = document.createElement("li");
+    item.className = "empty-state";
+    item.textContent = "選択期間に観測hour bucketがないため、ランキングを計算できません。";
+    list.replaceChildren(item);
+  } else {
+    const visible = state.rankingExpanded || filtered.length <= 10 ? filtered : filtered.slice(0, 10);
+    list.replaceChildren(...visible.map((room, index) => {
+      const item = document.createElement("li");
+      item.className = "ranking-row";
+      const percentage = room.rate === null ? null : room.rate * 100;
+      item.setAttribute(
+        "aria-label",
+        `${index + 1}位 ${room.room}号室 Type ${room.type} 空室表示率${percentage === null ? "データなし" : `${percentage.toFixed(1)}%`}`,
+      );
+      item.innerHTML = `
+        <span class="rank-number">${index + 1}</span>
+        <strong>${room.room}</strong>
+        <span class="ranking-type">Type ${room.type}</span>
+        <span class="ranking-rate">${percentage === null ? "--" : `${percentage.toFixed(1)}%`}</span>
+        <i class="ranking-bar" aria-hidden="true"><b style="width:${percentage || 0}%"></b></i>
+      `;
+      return item;
+    }));
+  }
+  const toggle = element("ranking-toggle");
+  toggle.hidden = filtered.length <= 10 || analysis.bucketCount === 0;
+  toggle.textContent = state.rankingExpanded ? "上位10室に戻す" : "すべて表示";
+  toggle.setAttribute("aria-expanded", String(state.rankingExpanded));
+}
+
+function renderAnalytics(now = new Date()) {
+  renderPeriodControls();
+  renderRankingFilters();
+  if (state.historyError) {
+    state.analysis = null;
+    element("analysis-data-note").textContent = "履歴データを読み込めないため分析を表示できません。";
+    renderEmpty(element("analysis-summary"), state.historyError);
+    renderEmpty(element("availability-heatmap"), state.historyError);
+    renderEmpty(element("facility-insights"), state.historyError);
+    element("room-ranking").replaceChildren();
+    element("ranking-toggle").hidden = true;
+    return;
+  }
+  const analysis = analyzeAvailability(
+    state.history,
+    state.masterRooms,
+    state.analysisHours,
+    now,
+  );
+  state.analysis = analysis;
+  const periodDays = state.analysisHours / 24;
+  element("analysis-data-note").textContent = analysis.bucketCount < state.analysisHours
+    ? `${periodDays}日windowのデータを収集中：観測${analysis.dayCount}日・${analysis.bucketCount}/${state.analysisHours}時間。未観測時間は統計から除外します。`
+    : `${periodDays}日分の完了済みhour bucketを集計しています。`;
+  renderAnalysisSummary(analysis);
+  renderHeatmap(analysis);
+  renderFacilityInsights(analysis);
+  renderRoomRanking(analysis);
+}
+
+function renderHistory(now = new Date()) {
+  renderRecentActivity(now);
+  renderAnalytics(now);
 }
 
 function renderCurrentData() {
@@ -362,6 +537,8 @@ async function pollLatest() {
       renderCurrentData();
       setStatus("新しい観測データに更新しました。");
       setTimeout(() => setStatus(""), 3500);
+    } else {
+      renderHistory();
     }
   } catch (error) {
     console.error(error);
@@ -370,6 +547,17 @@ async function pollLatest() {
 }
 
 element("refresh-button").addEventListener("click", loadAllData);
+element("analysis-period-tabs").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-hours]");
+  if (!button) return;
+  state.analysisHours = Number(button.dataset.hours);
+  state.rankingExpanded = false;
+  renderAnalytics();
+});
+element("ranking-toggle").addEventListener("click", () => {
+  state.rankingExpanded = !state.rankingExpanded;
+  renderRoomRanking(state.analysis);
+});
 setInterval(() => {
   if (state.latest) element("elapsed-time").textContent = elapsedLabel(state.latest.observed_at);
 }, 60000);

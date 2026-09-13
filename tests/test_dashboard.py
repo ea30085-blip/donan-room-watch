@@ -31,7 +31,8 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
     assert "viewport-fit=cover" in index
     assert '<html lang="ja">' in index
     assert '<main>' in index
-    assert '<script type="module" src="./app.js"></script>' in index
+    assert '<link rel="stylesheet" href="./styles.css?v=4.2">' in index
+    assert '<script type="module" src="./app.js?v=4.2"></script>' in index
     for element_id in [
         "available-count",
         "total-rooms",
@@ -41,7 +42,12 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
         "available-rooms",
         "type-summary",
         "availability-chart",
-        "featured-timeline",
+        "analysis-period-tabs",
+        "analysis-summary",
+        "availability-heatmap",
+        "facility-insights",
+        "ranking-filters",
+        "room-ranking",
     ]:
         assert f'id="{element_id}"' in index
 
@@ -52,6 +58,7 @@ def test_dashboard_files_and_primary_sections_exist() -> None:
     assert (WEB / "app.js").is_file()
     assert (WEB / "data-utils.js").is_file()
     assert (WEB / "facility-meta.js").is_file()
+    assert (WEB / "analytics-utils.js").is_file()
     assert (WEB / "favicon.svg").is_file()
 
 
@@ -64,12 +71,14 @@ def test_dashboard_css_is_mobile_first_and_safe_area_aware() -> None:
     assert "env(safe-area-inset-bottom)" in styles
     assert "min-height: 44px" in styles
     assert "@media (min-width: 620px)" in styles
-    assert ".timeline-scroll" in styles
+    assert ".heatmap-scroll" in styles
     assert "overflow-x: auto" in styles
     assert ".facility-chip" in styles
     assert ".facility-filter.active" in styles
     assert ".facility-filters" in styles
     assert "flex-wrap: wrap" in styles
+    assert ".analysis-summary" in styles
+    assert ".room-ranking" in styles
 
 
 def test_dashboard_uses_same_origin_data_and_periodic_cache_busting() -> None:
@@ -100,6 +109,23 @@ def test_dashboard_data_utilities_cover_required_aggregations() -> None:
         assert f"export function {export_name}" in utilities
     assert 'const JST_TIME_ZONE = "Asia/Tokyo"' in utilities
     assert 'values[4].split("|")' in utilities
+
+
+def test_dashboard_history_ui_uses_rolling_analysis_and_separate_filters() -> None:
+    index = (WEB / "index.html").read_text(encoding="utf-8")
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert "直近24時間の空室数推移" in index
+    assert "AVAILABILITY INSIGHTS" in index
+    assert 'data-hours="168"' in index
+    assert 'data-hours="720"' in index
+    assert "空室表示率" in index
+    assert "実際の客室利用率や予約成功率を示すものではありません" in index
+    assert "filterHistoryByRollingHours(state.history, 24, now)" in app
+    assert "state.activeFacility" in app
+    assert "state.rankingFacility" in app
+    assert "本日の空室数推移" not in index
+    assert "featured-timeline" not in index
 
 
 def test_facility_ui_uses_central_metadata_and_accessible_filter_state() -> None:
