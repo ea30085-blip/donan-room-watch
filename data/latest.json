@@ -1,17 +1,16 @@
 {
-  "observed_at": "2026-09-20T17:43:51+09:00",
-  "available_count": 8,
+  "observed_at": "2026-09-20T18:17:29+09:00",
+  "available_count": 7,
   "preparing_count": 4,
   "total_rooms": 50,
   "available_rooms": [
     "201",
-    "205",
-    "313",
+    "213",
+    "302",
     "405",
-    "412",
-    "501",
-    "515",
-    "611"
+    "418",
+    "513",
+    "612"
   ],
   "rooms": [
     {
@@ -42,7 +41,7 @@
     {
       "room": "205",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "211",
@@ -57,7 +56,7 @@
     {
       "room": "213",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "215",
@@ -87,7 +86,7 @@
     {
       "room": "302",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "303",
@@ -112,7 +111,7 @@
     {
       "room": "313",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "315",
@@ -162,7 +161,7 @@
     {
       "room": "412",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "413",
@@ -187,12 +186,12 @@
     {
       "room": "418",
       "type": "C",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "501",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "502",
@@ -222,12 +221,12 @@
     {
       "room": "513",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "515",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "516",
@@ -247,12 +246,12 @@
     {
       "room": "611",
       "type": "I",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "612",
       "type": "H",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "613",
