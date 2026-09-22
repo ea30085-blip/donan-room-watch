@@ -1,19 +1,11 @@
 {
-  "observed_at": "2026-09-22T10:43:16+09:00",
-  "available_count": 11,
-  "preparing_count": 6,
+  "observed_at": "2026-09-22T11:18:15+09:00",
+  "available_count": 3,
+  "preparing_count": 5,
   "total_rooms": 50,
   "available_rooms": [
-    "201",
-    "205",
-    "212",
-    "401",
-    "402",
-    "411",
+    "302",
     "502",
-    "503",
-    "517",
-    "611",
     "615"
   ],
   "rooms": [
@@ -30,7 +22,7 @@
     {
       "room": "201",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "202",
@@ -45,7 +37,7 @@
     {
       "room": "205",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "211",
@@ -55,7 +47,7 @@
     {
       "room": "212",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "213",
@@ -90,7 +82,7 @@
     {
       "room": "302",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "303",
@@ -140,12 +132,12 @@
     {
       "room": "401",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "402",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "403",
@@ -160,7 +152,7 @@
     {
       "room": "411",
       "type": "C",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "412",
@@ -205,7 +197,7 @@
     {
       "room": "503",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "505",
@@ -240,7 +232,7 @@
     {
       "room": "517",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "518",
@@ -250,7 +242,7 @@
     {
       "room": "611",
       "type": "I",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "612",
