@@ -1,16 +1,13 @@
 {
-  "observed_at": "2026-09-28T13:48:36+09:00",
-  "available_count": 7,
-  "preparing_count": 0,
+  "observed_at": "2026-09-28T14:19:56+09:00",
+  "available_count": 4,
+  "preparing_count": 2,
   "total_rooms": 50,
   "available_rooms": [
-    "303",
-    "315",
-    "401",
-    "413",
-    "501",
-    "613",
-    "615"
+    "213",
+    "402",
+    "403",
+    "505"
   ],
   "rooms": [
     {
@@ -56,7 +53,7 @@
     {
       "room": "213",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "215",
@@ -91,7 +88,7 @@
     {
       "room": "303",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "305",
@@ -116,7 +113,7 @@
     {
       "room": "315",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "316",
@@ -136,17 +133,17 @@
     {
       "room": "401",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "402",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "403",
       "type": "G",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "405",
@@ -166,7 +163,7 @@
     {
       "room": "413",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "415",
@@ -191,7 +188,7 @@
     {
       "room": "501",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "502",
@@ -206,7 +203,7 @@
     {
       "room": "505",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "511",
@@ -256,12 +253,12 @@
     {
       "room": "613",
       "type": "E",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "615",
       "type": "I",
-      "status": "available"
+      "status": "not_available"
     }
   ]
 }
