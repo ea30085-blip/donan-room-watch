@@ -1,15 +1,19 @@
 {
-  "observed_at": "2026-10-07T16:06:54+09:00",
-  "available_count": 6,
-  "preparing_count": 5,
+  "observed_at": "2026-10-07T23:27:09+09:00",
+  "available_count": 10,
+  "preparing_count": 4,
   "total_rooms": 50,
   "available_rooms": [
-    "302",
+    "201",
+    "205",
+    "212",
     "316",
-    "401",
-    "413",
+    "405",
+    "417",
     "501",
-    "613"
+    "505",
+    "513",
+    "615"
   ],
   "rooms": [
     {
@@ -25,7 +29,7 @@
     {
       "room": "201",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "202",
@@ -40,7 +44,7 @@
     {
       "room": "205",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "211",
@@ -50,7 +54,7 @@
     {
       "room": "212",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "213",
@@ -85,7 +89,7 @@
     {
       "room": "302",
       "type": "G",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "303",
@@ -135,7 +139,7 @@
     {
       "room": "401",
       "type": "F",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "402",
@@ -150,7 +154,7 @@
     {
       "room": "405",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "411",
@@ -165,7 +169,7 @@
     {
       "room": "413",
       "type": "D",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "415",
@@ -180,7 +184,7 @@
     {
       "room": "417",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "418",
@@ -205,7 +209,7 @@
     {
       "room": "505",
       "type": "F",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "511",
@@ -220,7 +224,7 @@
     {
       "room": "513",
       "type": "D",
-      "status": "not_available"
+      "status": "available"
     },
     {
       "room": "515",
@@ -255,12 +259,12 @@
     {
       "room": "613",
       "type": "E",
-      "status": "available"
+      "status": "not_available"
     },
     {
       "room": "615",
       "type": "I",
-      "status": "not_available"
+      "status": "available"
     }
   ]
 }
